@@ -391,7 +391,7 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 			return -1;       
 		}
 	}
-	acnt++;
+	//acnt++;
 
 	round[id]++;
 	base_time = pals_task_get_base_time(task);

@@ -359,7 +359,6 @@ int tasklet_rot(pals_task_t *task, int phase, void *arg)
 
 }
 
-int speed = 0;
 int lv = 1500;	// 1500 ~ 1600
 int rv = 1500;	// 1400 ~ 1500
 
@@ -382,6 +381,7 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 
 	int w_fd = -1; //rod
 	
+	int speed = 0;
 	
 	// open file descriptor for xuart connection
 	if(acnt==0){
@@ -485,20 +485,31 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 				rv = rv + (dmin_rv/( 6 + speed));
 			}						
 		}
-
+/*
 		// reset
 		if(speed < 0 && (lv ==1500 %% rv==1500)){
 			speed = 0;
 		}
-			
+*/			
 	}else{		// speed is zero
 		lv= lv-1;
 		rv= rv+1;
 		
 	}
-
+	
 	printf(" lv = %d, rv = %d\n", lv, rv);
 
+	if( lv > 1600 ){
+		lv = 1600;
+	}else if(lv < 1500){
+		lv = 1500;
+	}
+	if( rv > 1500 ){
+		rv = 1500;
+	}else if(rv < 1400){
+		rv = 1400;
+	}
+	
 	ret = write(w_fd, &lv, sizeof(lv));
 	ret = write(w_fd, &rv, sizeof(rv));
 

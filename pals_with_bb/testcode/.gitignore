@@ -1,0 +1,7 @@
+simple
+comtest
+multitest
+*.swp
+*.a
+*.o
+.depend

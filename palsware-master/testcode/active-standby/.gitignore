@@ -1,0 +1,6 @@
+side
+supervisor
+*.swp
+*.a
+*.o
+.depend

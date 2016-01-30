@@ -244,7 +244,7 @@ int tasklet_acc(pals_task_t *task, int phase, void *arg)
 						d_acc = (buf[1]-48)*100+(buf[2]-48)*10+(buf[3]-48);
 					}
 					printf("'%s' from server\n", buf);
-				else{
+				}else{
 					printf("task%d(%d): received(con%d) message = '%s'\n", id+1, round[id], i+1, buf);
 				}
 			}

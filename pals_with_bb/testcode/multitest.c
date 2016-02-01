@@ -14,6 +14,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <active-standby.h>
+
 //#define PERIOD 1000000000L   // 2.0 sec
 #define PERIOD 1000000000L
 #define TASK1	"task1"
@@ -21,13 +23,14 @@
 #define TASK3	"task3"
 #define TASK4	"task4"
 #define TASK5	"task5"
+#define TASK6	"task6"
 
 #define CON1	"con1"
 #define CON2	"con2"
 #define CON3	"con3"
 #define CON4	"con4"
 #define CON5	"con5"
-
+#define CON6	"con6"
 
 #define XUART1 "/dev/ttyO1"
 #define DIV	10	// rod
@@ -38,7 +41,8 @@ struct pals_conf_task tasks[] = {
 	{.name = TASK2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4322, .rate = 2, .offset = 0},
 	{.name = TASK3, .prio = 4, .ip_addr = "127.0.0.1", .port = 4323, .rate = 3, .offset = 0},
 	{.name = TASK4, .prio = 4, .ip_addr = "127.0.0.1", .port = 4324, .rate = 3, .offset = 0},
-	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 3, .offset = 0}//////////////////////////////////////////////
+	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 3, .offset = 0},	// arduino
+	{.name = TASK6, .prio = 4, .ip_addr = "127.0.0.1", .port = 4326, .rate = 3, .offset = 0}	// side
 };
 
 #define NTASKS (sizeof(tasks)/sizeof(struct pals_conf_task))
@@ -49,7 +53,8 @@ struct pals_conf_con cons[] = {
 	{.name = CON2, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK2, .n_peers = 0},
 	{.name = CON3, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK3, .n_peers = 0},
 	{.name = CON4, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK4, .n_peers = 0},
-	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0},////////////////////////////////////////////////////
+	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0}, //
+	{.name = CON6, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK6, .n_peers = 0}	// side
 
 };
 
@@ -66,6 +71,75 @@ struct pals_conf pals_conf = {
 	.n_cons = 5,//origin:4//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	.cons = cons
 };
+
+enum {
+    INACTIVE = 0,
+    ACTIVE = 1,
+    STANDBY = 2
+};
+
+int myside; // 1 or 2
+int mystate = INACTIVE;
+int other_state = INACTIVE;
+int cmd;
+pals_rx_port_t *cmd_port;
+pals_tx_port_t *state_tx_port;
+pals_rx_port_t *state_rx_port;
+
+// routine for each period
+int tasklet_side(pals_task_t *task, int phase, void *arg)
+{
+		static int round;
+		int ret;
+		const pals_time_t *base_time, *start_time;
+
+		round++;
+		base_time = pals_task_get_base_time(task);
+		start_time = pals_task_get_start_time(task);
+
+		printf("side%d(%d): (base_time={sec=%llu,nsec=%llu}, start_time={sec=%llu,nsec=%llu})\n",
+						myside, round, base_time->sec, base_time->nsec, start_time->sec, start_time->nsec);
+
+		ret = pals_recv(state_rx_port, &other_state, sizeof(other_state));
+		if (ret < 0) {
+				// no alive message
+				other_state = INACTIVE;
+				printf("  side%d: NO_MSG from %s\n", myside, (myside == 1) ? SIDE2 : SIDE1);
+		}
+
+		ret = pals_recv(cmd_port, &cmd, sizeof(cmd));
+		if (ret < 0) {
+				// no toggle message
+				cmd = NO_MSG;
+		}
+
+		// decide current state
+		if (mystate == other_state) {
+				mystate = (myside == 1)? ACTIVE : STANDBY;
+		} else if (mystate == INACTIVE) {
+				// the other side alive aleady before me
+				mystate = STANDBY;
+				assert(other_state == ACTIVE);
+		} else if (other_state == INACTIVE) {
+				mystate = ACTIVE;
+		} else if (cmd == TOGGLE) {
+				// flip the state
+				mystate = (mystate == ACTIVE)? STANDBY : ACTIVE;
+				printf("  side%d: toggle to %s state\n", myside, (mystate==ACTIVE)? "ACTIVE" : "STANDBY");
+		}
+		printf("  side%d: My State = %s\n", myside, (mystate==ACTIVE)? "ACTIVE" : "STANDBY");
+
+		// send my state to the other
+		ret = pals_send(state_tx_port, &mystate, sizeof(mystate));
+		if (ret < 0) {
+				perror("send");
+				return -1;
+		}
+
+		assert(ret == sizeof(mystate));
+
+		return 0;
+}
 
 pals_rx_port_t *rx_port[NCONS];
 pals_tx_port_t *tx_port;
@@ -244,7 +318,7 @@ int tasklet_acc(pals_task_t *task, int phase, void *arg)
 						d_acc = (buf[1]-48)*100+(buf[2]-48)*10+(buf[3]-48);
 					}
 					printf("'%s' from server\n", buf);
-				else{
+				}else{
 					printf("task%d(%d): received(con%d) message = '%s'\n", id+1, round[id], i+1, buf);
 				}
 			}
@@ -569,6 +643,8 @@ int main(int argc, char *argv[])
 		case 3 : task = pals_task_open(env, name, tasklet_brk, (void*)(long)id);; break;
 		case 4 : task = pals_task_open(env, name, tasklet_rot, (void*)(long)id);; break;
 		case 5 : task = pals_task_open(env, name, tasklet_ard, (void*)(long)id); break;
+		case 6 : myside=1; task = pals_task_open(env, name, tasklet_side, (void*)(long)id); break; 
+		case 7 : myside=2; task = pals_task_open(env, name, tasklet_side, (void*)(long)id); break;
 		default : ; break;
 	}
 
@@ -576,6 +652,8 @@ int main(int argc, char *argv[])
 		perror("task open\n");
 		return -1;
 	}
+
+	cmd_port = pals_rx_port_open(task, CON_CMD);
 
 	for (i=0; i<NCONS; i++) {
 		sprintf(name, "con%d", i+1);

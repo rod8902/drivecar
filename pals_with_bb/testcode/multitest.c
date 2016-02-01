@@ -14,23 +14,21 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <active-standby.h>
+#include "active-standby/active-standby.h"
 
 //#define PERIOD 1000000000L   // 2.0 sec
 #define PERIOD 1000000000L
-#define TASK1	"task1"
-#define TASK2	"task2"
-#define TASK3	"task3"
-#define TASK4	"task4"
-#define TASK5	"task5"
-#define TASK6	"task6"
+#define TASK1	"Server"
+#define TASK2	"Accel"
+#define TASK3	"Brake"
+#define TASK4	"Turn"
+#define TASK5	"Arduino"
 
 #define CON1	"con1"
 #define CON2	"con2"
 #define CON3	"con3"
 #define CON4	"con4"
 #define CON5	"con5"
-#define CON6	"con6"
 
 #define XUART1 "/dev/ttyO1"
 #define DIV	10	// rod
@@ -42,19 +40,23 @@ struct pals_conf_task tasks[] = {
 	{.name = TASK3, .prio = 4, .ip_addr = "127.0.0.1", .port = 4323, .rate = 3, .offset = 0},
 	{.name = TASK4, .prio = 4, .ip_addr = "127.0.0.1", .port = 4324, .rate = 3, .offset = 0},
 	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 3, .offset = 0},	// arduino
-	{.name = TASK6, .prio = 4, .ip_addr = "127.0.0.1", .port = 4326, .rate = 3, .offset = 0}	// side
+	{.name = SIDE1, .prio = 4, .ip_addr = "127.0.0.1", .port = 4326, .rate = 1, .offset = 0},	// side1
+	{.name = SIDE2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4327, .rate = 1, .offset = 0},	// side2
+	{.name = SUPERVISOR, .prio = 4, .ip_addr = "127.0.0.1", .port = 4328, .rate = 1, .offset = 0}	// supervisor
 };
 
 #define NTASKS (sizeof(tasks)/sizeof(struct pals_conf_task))
 
 // connections
 struct pals_conf_con cons[] = {
-	{.name = CON1, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK1, .n_peers = 0},
-	{.name = CON2, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK2, .n_peers = 0},
-	{.name = CON3, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK3, .n_peers = 0},
-	{.name = CON4, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK4, .n_peers = 0},
-	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0}, //
-	{.name = CON6, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK6, .n_peers = 0}	// side
+	{.name = CON1, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK1, .n_peers = 0}, // server
+	{.name = CON2, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK2, .n_peers = 0}, // acc
+	{.name = CON3, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK3, .n_peers = 0}, // brk
+	{.name = CON4, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK4, .n_peers = 0},	// rot
+	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0}, // arduino
+	{.name = CON_STATE1, .len = sizeof(int), .mode = 0, .sender = SIDE1, .n_peers = 1, .peers = (const char *[]){SIDE2}},	// side1
+	{.name = CON_STATE2, .len = sizeof(int), .mode = 0, .sender = SIDE2, .n_peers = 1, .peers = (const char *[]){SIDE1}},	// side1
+	{.name = CON_CMD, .len= sizeof(int), .mode = 0, .sender = SUPERVISOR, .n_peers = 2, .peers = (const char *[]){SIDE1, SIDE2}}	//supervisor
 
 };
 
@@ -62,13 +64,13 @@ struct pals_conf_con cons[] = {
 
 // master configuration
 struct pals_conf pals_conf = {
-	.name = "multirate-comtest",
+	.name = "multirate-comtest with active-standby",
 	.period = PERIOD,
 	.mcast_addr = "226.1.1.1",
 	.mcast_port = 4511,
-	.n_tasks = 5,//origin:4//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	.n_tasks = 8,	// original = 4
 	.tasks = tasks,
-	.n_cons = 5,//origin:4//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	.n_cons = 8,	// original = 4
 	.cons = cons
 };
 

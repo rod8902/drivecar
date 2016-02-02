@@ -30,6 +30,7 @@
 #define CON4	"con4"
 #define CON5	"con5"
 
+
 #define XUART1 "/dev/ttyO1"
 #define DIV	10	// rod
 
@@ -61,7 +62,7 @@ struct pals_conf_con cons[] = {
 };
 
 #define NCONS (sizeof(cons)/sizeof(struct pals_conf_con))
-
+//int NCONS;
 // master configuration
 struct pals_conf pals_conf = {
 	.name = "multirate-comtest with active-standby",
@@ -157,7 +158,6 @@ struct sockaddr_in clientaddr, serveraddr;
 int acnt=0;
 
 int tasklet_server(pals_task_t *task, int phase, void *arg){
-
 
 	static int round[NTASKS];
 	char buf[100]={0};
@@ -628,37 +628,72 @@ int main(int argc, char *argv[])
 
 	pals_get_time(&time);
 	printf("%s start at {sec=%lld, nsec=%lld}\n", pals_env_get_name(env), time.sec, time.nsec);
-
-	sprintf(name, "task%d", id+1);
-	/*
-	   if(id+1==1){
-	//task = pals_task_open(env, name, tasklet1, (void*)(long)id);
-	task = pals_task_open(env, name, tasklet_server, (void*)(long)id);
-	}
-	else if(id+1==2){
-	task = pals_task_open(env, name, tasklet_b, (void*)(long)id);
-	}
-	 */
+	
+	//sprintf(name, "task%d", id+1);
+	
+	
 	switch (id+1) {
-		case 1 : task = pals_task_open(env, name, tasklet_server, (void*)(long)id); break;
-		case 2 : task = pals_task_open(env, name, tasklet_acc, (void*)(long)id); break;
-		case 3 : task = pals_task_open(env, name, tasklet_brk, (void*)(long)id);; break;
-		case 4 : task = pals_task_open(env, name, tasklet_rot, (void*)(long)id);; break;
-		case 5 : task = pals_task_open(env, name, tasklet_ard, (void*)(long)id); break;
-		case 6 : myside=1; task = pals_task_open(env, name, tasklet_side, (void*)(long)id); break; 
-		case 7 : myside=2; task = pals_task_open(env, name, tasklet_side, (void*)(long)id); break;
-		default : ; break;
+		case 1: 
+			sprintf(name, TASK1);
+			task = pals_task_open(env, name, tasklet_server, (void*)(long)id); 
+			break;
+		case 2: 
+			sprintf(name, TASK2);
+			task = pals_task_open(env, name, tasklet_acc, (void*)(long)id); 
+			break;
+		case 3: 
+			sprintf(name, TASK3);
+			task = pals_task_open(env, name, tasklet_brk, (void*)(long)id); 
+			break;
+		case 4: 
+			sprintf(name, TASK4);
+			task = pals_task_open(env, name, tasklet_rot, (void*)(long)id);
+			 break;
+		case 5: 
+			sprintf(name, TASK5);
+			task = pals_task_open(env, name, tasklet_ard, (void*)(long)id); break;
+		case 6:
+		case 7: 
+			myside = (id+1 == 6)? 1 : 2; 
+			task = pals_task_open(env, ((id+1 == 6) ? SIDE1 : SIDE2), tasklet_side, (void*)(long)myside); 
+		case 8:
+			sprintf(name, SUPERVISOR);
+			break;
+		default: 
+			break;
 	}
-
+/*
+	if( id < 5){
+		NCONS = 5;
+	}else if( id < 7){
+		NCONS = 6;
+	}else if( id == 7){
+		NCONS = 1;
+	}else
+		perror("NCONS Error");
+*/
 	if (task == NULL) {
 		perror("task open\n");
 		return -1;
 	}
 
-	cmd_port = pals_rx_port_open(task, CON_CMD);
+	//cmd_port = pals_rx_port_open(task, CON_CMD);
 
 	for (i=0; i<NCONS; i++) {
-		sprintf(name, "con%d", i+1);
+		switch(i+1){
+		case 1: 
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+			sprintf(name, "con%d", i+1);
+			break;
+		case 6:
+		case 7:
+			sprintf(name, (i+1 == 6) ? CON_STATE1 : CON_STATE2);
+			break;
+		}
+		
 		if (i == id) {
 			tx_port = pals_tx_port_open(task, name);
 			if (tx_port == NULL) {
@@ -666,7 +701,9 @@ int main(int argc, char *argv[])
 				return -1;
 			}
 		} else {
+			printf("%s\n", name);
 			rx_port[i] = pals_rx_port_open(task, name);
+			printf("%s done\n", name);
 			if (rx_port[i] == NULL) {
 				perror("rx port open\n");
 				return -1;

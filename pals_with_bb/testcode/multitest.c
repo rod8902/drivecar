@@ -309,9 +309,6 @@ int tasklet_acc(pals_task_t *task, int phase, void *arg)
 			ret = pals_recv(rx_port[i], buf, sizeof(buf));
 			if (ret < 0) {
 				perror("recv");
-				if(i==2){	// No received msg from brake_task
-					d_acc = 0;
-				}
 			} else {
 				printf("%s from %d \n", buf, i);
 				

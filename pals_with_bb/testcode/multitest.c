@@ -14,13 +14,15 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "active-standby/active-standby.h"
+
 //#define PERIOD 1000000000L   // 2.0 sec
 #define PERIOD 1000000000L
-#define TASK1	"task1"
-#define TASK2	"task2"
-#define TASK3	"task3"
-#define TASK4	"task4"
-#define TASK5	"task5"
+#define TASK1	"Server"
+#define TASK2	"Accel"
+#define TASK3	"Brake"
+#define TASK4	"Turn"
+#define TASK5	"Arduino"
 
 #define CON1	"con1"
 #define CON2	"con2"
@@ -38,34 +40,127 @@ struct pals_conf_task tasks[] = {
 	{.name = TASK2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4322, .rate = 2, .offset = 0},
 	{.name = TASK3, .prio = 4, .ip_addr = "127.0.0.1", .port = 4323, .rate = 3, .offset = 0},
 	{.name = TASK4, .prio = 4, .ip_addr = "127.0.0.1", .port = 4324, .rate = 3, .offset = 0},
+<<<<<<< HEAD
 	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 3, .offset = 0}	// new
+=======
+	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 3, .offset = 0},	// arduino
+	{.name = SIDE1, .prio = 4, .ip_addr = "127.0.0.1", .port = 4326, .rate = 1, .offset = 0},	// side1
+	{.name = SIDE2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4327, .rate = 1, .offset = 0},	// side2
+	{.name = SUPERVISOR, .prio = 4, .ip_addr = "127.0.0.1", .port = 4328, .rate = 1, .offset = 0}	// supervisor
+>>>>>>> origin/rod
 };
 
 #define NTASKS (sizeof(tasks)/sizeof(struct pals_conf_task))
 
 // connections
 struct pals_conf_con cons[] = {
+<<<<<<< HEAD
 	{.name = CON1, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK1, .n_peers = 0},
 	{.name = CON2, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK2, .n_peers = 0},
 	{.name = CON3, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK3, .n_peers = 0},
 	{.name = CON4, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK4, .n_peers = 0},
 	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0}	// new
+=======
+	{.name = CON1, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK1, .n_peers = 0}, // server
+	{.name = CON2, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK2, .n_peers = 0}, // acc
+	{.name = CON3, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK3, .n_peers = 0}, // brk
+	{.name = CON4, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK4, .n_peers = 0},	// rot
+	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0}, // arduino
+	{.name = CON_STATE1, .len = sizeof(int), .mode = 0, .sender = SIDE1, .n_peers = 1, .peers = (const char *[]){SIDE2}},	// side1
+	{.name = CON_STATE2, .len = sizeof(int), .mode = 0, .sender = SIDE2, .n_peers = 1, .peers = (const char *[]){SIDE1}},	// side1
+	{.name = CON_CMD, .len= sizeof(int), .mode = 0, .sender = SUPERVISOR, .n_peers = 2, .peers = (const char *[]){SIDE1, SIDE2}}	//supervisor
+>>>>>>> origin/rod
 
 };
 
 #define NCONS (sizeof(cons)/sizeof(struct pals_conf_con))
-
+//int NCONS;
 // master configuration
 struct pals_conf pals_conf = {
-	.name = "multirate-comtest",
+	.name = "multirate-comtest with active-standby",
 	.period = PERIOD,
 	.mcast_addr = "226.1.1.1",
 	.mcast_port = 4511,
+<<<<<<< HEAD
 	.n_tasks = 5,	// origin: 4
 	.tasks = tasks,
 	.n_cons = 5,	//origin:4	
+=======
+	.n_tasks = 8,	// original = 4
+	.tasks = tasks,
+	.n_cons = 8,	// original = 4
+>>>>>>> origin/rod
 	.cons = cons
 };
+
+enum {
+    INACTIVE = 0,
+    ACTIVE = 1,
+    STANDBY = 2
+};
+
+int myside; // 1 or 2
+int mystate = INACTIVE;
+int other_state = INACTIVE;
+int cmd;
+pals_rx_port_t *cmd_port;
+pals_tx_port_t *state_tx_port;
+pals_rx_port_t *state_rx_port;
+
+// routine for each period
+int tasklet_side(pals_task_t *task, int phase, void *arg)
+{
+		static int round;
+		int ret;
+		const pals_time_t *base_time, *start_time;
+
+		round++;
+		base_time = pals_task_get_base_time(task);
+		start_time = pals_task_get_start_time(task);
+
+		printf("side%d(%d): (base_time={sec=%llu,nsec=%llu}, start_time={sec=%llu,nsec=%llu})\n",
+						myside, round, base_time->sec, base_time->nsec, start_time->sec, start_time->nsec);
+
+		ret = pals_recv(state_rx_port, &other_state, sizeof(other_state));
+		if (ret < 0) {
+				// no alive message
+				other_state = INACTIVE;
+				printf("  side%d: NO_MSG from %s\n", myside, (myside == 1) ? SIDE2 : SIDE1);
+		}
+
+		ret = pals_recv(cmd_port, &cmd, sizeof(cmd));
+		if (ret < 0) {
+				// no toggle message
+				cmd = NO_MSG;
+		}
+
+		// decide current state
+		if (mystate == other_state) {
+				mystate = (myside == 1)? ACTIVE : STANDBY;
+		} else if (mystate == INACTIVE) {
+				// the other side alive aleady before me
+				mystate = STANDBY;
+				assert(other_state == ACTIVE);
+		} else if (other_state == INACTIVE) {
+				mystate = ACTIVE;
+		} else if (cmd == TOGGLE) {
+				// flip the state
+				mystate = (mystate == ACTIVE)? STANDBY : ACTIVE;
+				printf("  side%d: toggle to %s state\n", myside, (mystate==ACTIVE)? "ACTIVE" : "STANDBY");
+		}
+		printf("  side%d: My State = %s\n", myside, (mystate==ACTIVE)? "ACTIVE" : "STANDBY");
+
+		// send my state to the other
+		ret = pals_send(state_tx_port, &mystate, sizeof(mystate));
+		if (ret < 0) {
+				perror("send");
+				return -1;
+		}
+
+		assert(ret == sizeof(mystate));
+
+		return 0;
+}
 
 pals_rx_port_t *rx_port[NCONS];
 pals_tx_port_t *tx_port;
@@ -81,7 +176,6 @@ struct sockaddr_in clientaddr, serveraddr;
 int acnt=0;
 
 int tasklet_server(pals_task_t *task, int phase, void *arg){
-
 
 	static int round[NTASKS];
 	char buf[100]={0};
@@ -393,7 +487,7 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 			return -1;       
 		}
 	}
-	acnt++;
+	//acnt++;
 
 	round[id]++;
 	base_time = pals_task_get_base_time(task);
@@ -561,6 +655,7 @@ int main(int argc, char *argv[])
 
 	pals_get_time(&time);
 	printf("%s start at {sec=%lld, nsec=%lld}\n", pals_env_get_name(env), time.sec, time.nsec);
+<<<<<<< HEAD
 
 	sprintf(name, "task%d", id+1);
 	
@@ -571,15 +666,74 @@ int main(int argc, char *argv[])
 		case 4 : task = pals_task_open(env, name, tasklet_rot, (void*)(long)id);; break;
 		case 5 : task = pals_task_open(env, name, tasklet_ard, (void*)(long)id); break;
 		default : break;
+=======
+	
+	//sprintf(name, "task%d", id+1);
+	
+	
+	switch (id+1) {
+		case 1: 
+			sprintf(name, TASK1);
+			task = pals_task_open(env, name, tasklet_server, (void*)(long)id); 
+			break;
+		case 2: 
+			sprintf(name, TASK2);
+			task = pals_task_open(env, name, tasklet_acc, (void*)(long)id); 
+			break;
+		case 3: 
+			sprintf(name, TASK3);
+			task = pals_task_open(env, name, tasklet_brk, (void*)(long)id); 
+			break;
+		case 4: 
+			sprintf(name, TASK4);
+			task = pals_task_open(env, name, tasklet_rot, (void*)(long)id);
+			 break;
+		case 5: 
+			sprintf(name, TASK5);
+			task = pals_task_open(env, name, tasklet_ard, (void*)(long)id); break;
+		case 6:
+		case 7: 
+			myside = (id+1 == 6)? 1 : 2; 
+			task = pals_task_open(env, ((id+1 == 6) ? SIDE1 : SIDE2), tasklet_side, (void*)(long)myside); 
+		case 8:
+			sprintf(name, SUPERVISOR);
+			break;
+		default: 
+			break;
+>>>>>>> origin/rod
 	}
-
+/*
+	if( id < 5){
+		NCONS = 5;
+	}else if( id < 7){
+		NCONS = 6;
+	}else if( id == 7){
+		NCONS = 1;
+	}else
+		perror("NCONS Error");
+*/
 	if (task == NULL) {
 		perror("task open\n");
 		return -1;
 	}
 
+	//cmd_port = pals_rx_port_open(task, CON_CMD);
+
 	for (i=0; i<NCONS; i++) {
-		sprintf(name, "con%d", i+1);
+		switch(i+1){
+		case 1: 
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+			sprintf(name, "con%d", i+1);
+			break;
+		case 6:
+		case 7:
+			sprintf(name, (i+1 == 6) ? CON_STATE1 : CON_STATE2);
+			break;
+		}
+		
 		if (i == id) {
 			tx_port = pals_tx_port_open(task, name);
 			if (tx_port == NULL) {
@@ -587,7 +741,9 @@ int main(int argc, char *argv[])
 				return -1;
 			}
 		} else {
+			printf("%s\n", name);
 			rx_port[i] = pals_rx_port_open(task, name);
+			printf("%s done\n", name);
 			if (rx_port[i] == NULL) {
 				perror("rx port open\n");
 				return -1;

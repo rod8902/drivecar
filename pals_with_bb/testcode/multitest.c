@@ -40,37 +40,18 @@ struct pals_conf_task tasks[] = {
 	{.name = TASK2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4322, .rate = 2, .offset = 0},
 	{.name = TASK3, .prio = 4, .ip_addr = "127.0.0.1", .port = 4323, .rate = 3, .offset = 0},
 	{.name = TASK4, .prio = 4, .ip_addr = "127.0.0.1", .port = 4324, .rate = 3, .offset = 0},
-<<<<<<< HEAD
 	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 3, .offset = 0}	// new
-=======
-	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 3, .offset = 0},	// arduino
-	{.name = SIDE1, .prio = 4, .ip_addr = "127.0.0.1", .port = 4326, .rate = 1, .offset = 0},	// side1
-	{.name = SIDE2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4327, .rate = 1, .offset = 0},	// side2
-	{.name = SUPERVISOR, .prio = 4, .ip_addr = "127.0.0.1", .port = 4328, .rate = 1, .offset = 0}	// supervisor
->>>>>>> origin/rod
 };
 
 #define NTASKS (sizeof(tasks)/sizeof(struct pals_conf_task))
 
 // connections
 struct pals_conf_con cons[] = {
-<<<<<<< HEAD
 	{.name = CON1, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK1, .n_peers = 0},
 	{.name = CON2, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK2, .n_peers = 0},
 	{.name = CON3, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK3, .n_peers = 0},
 	{.name = CON4, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK4, .n_peers = 0},
 	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0}	// new
-=======
-	{.name = CON1, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK1, .n_peers = 0}, // server
-	{.name = CON2, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK2, .n_peers = 0}, // acc
-	{.name = CON3, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK3, .n_peers = 0}, // brk
-	{.name = CON4, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK4, .n_peers = 0},	// rot
-	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0}, // arduino
-	{.name = CON_STATE1, .len = sizeof(int), .mode = 0, .sender = SIDE1, .n_peers = 1, .peers = (const char *[]){SIDE2}},	// side1
-	{.name = CON_STATE2, .len = sizeof(int), .mode = 0, .sender = SIDE2, .n_peers = 1, .peers = (const char *[]){SIDE1}},	// side1
-	{.name = CON_CMD, .len= sizeof(int), .mode = 0, .sender = SUPERVISOR, .n_peers = 2, .peers = (const char *[]){SIDE1, SIDE2}}	//supervisor
->>>>>>> origin/rod
-
 };
 
 #define NCONS (sizeof(cons)/sizeof(struct pals_conf_con))
@@ -81,15 +62,9 @@ struct pals_conf pals_conf = {
 	.period = PERIOD,
 	.mcast_addr = "226.1.1.1",
 	.mcast_port = 4511,
-<<<<<<< HEAD
 	.n_tasks = 5,	// origin: 4
 	.tasks = tasks,
 	.n_cons = 5,	//origin:4	
-=======
-	.n_tasks = 8,	// original = 4
-	.tasks = tasks,
-	.n_cons = 8,	// original = 4
->>>>>>> origin/rod
 	.cons = cons
 };
 
@@ -655,7 +630,6 @@ int main(int argc, char *argv[])
 
 	pals_get_time(&time);
 	printf("%s start at {sec=%lld, nsec=%lld}\n", pals_env_get_name(env), time.sec, time.nsec);
-<<<<<<< HEAD
 
 	sprintf(name, "task%d", id+1);
 	
@@ -666,74 +640,19 @@ int main(int argc, char *argv[])
 		case 4 : task = pals_task_open(env, name, tasklet_rot, (void*)(long)id);; break;
 		case 5 : task = pals_task_open(env, name, tasklet_ard, (void*)(long)id); break;
 		default : break;
-=======
 	
-	//sprintf(name, "task%d", id+1);
+	sprintf(name, "task%d", id+1);
 	
-	
-	switch (id+1) {
-		case 1: 
-			sprintf(name, TASK1);
-			task = pals_task_open(env, name, tasklet_server, (void*)(long)id); 
-			break;
-		case 2: 
-			sprintf(name, TASK2);
-			task = pals_task_open(env, name, tasklet_acc, (void*)(long)id); 
-			break;
-		case 3: 
-			sprintf(name, TASK3);
-			task = pals_task_open(env, name, tasklet_brk, (void*)(long)id); 
-			break;
-		case 4: 
-			sprintf(name, TASK4);
-			task = pals_task_open(env, name, tasklet_rot, (void*)(long)id);
-			 break;
-		case 5: 
-			sprintf(name, TASK5);
-			task = pals_task_open(env, name, tasklet_ard, (void*)(long)id); break;
-		case 6:
-		case 7: 
-			myside = (id+1 == 6)? 1 : 2; 
-			task = pals_task_open(env, ((id+1 == 6) ? SIDE1 : SIDE2), tasklet_side, (void*)(long)myside); 
-		case 8:
-			sprintf(name, SUPERVISOR);
-			break;
-		default: 
-			break;
->>>>>>> origin/rod
 	}
-/*
-	if( id < 5){
-		NCONS = 5;
-	}else if( id < 7){
-		NCONS = 6;
-	}else if( id == 7){
-		NCONS = 1;
-	}else
-		perror("NCONS Error");
-*/
 	if (task == NULL) {
 		perror("task open\n");
 		return -1;
 	}
 
-	//cmd_port = pals_rx_port_open(task, CON_CMD);
 
 	for (i=0; i<NCONS; i++) {
-		switch(i+1){
-		case 1: 
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-			sprintf(name, "con%d", i+1);
-			break;
-		case 6:
-		case 7:
-			sprintf(name, (i+1 == 6) ? CON_STATE1 : CON_STATE2);
-			break;
-		}
-		
+		sprintf(name, "con%d", i+1);
+	
 		if (i == id) {
 			tx_port = pals_tx_port_open(task, name);
 			if (tx_port == NULL) {

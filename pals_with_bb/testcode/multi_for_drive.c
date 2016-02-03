@@ -38,7 +38,7 @@ struct pals_conf_task tasks[] = {
 	{.name = TASK2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4322, .rate = 2, .offset = 0},
 	{.name = TASK3, .prio = 4, .ip_addr = "127.0.0.1", .port = 4323, .rate = 3, .offset = 0},
 	{.name = TASK4, .prio = 4, .ip_addr = "127.0.0.1", .port = 4324, .rate = 3, .offset = 0},
-	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 3, .offset = 0}	// new
+	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 3, .offset = 0}//////////////////////////////////////////////
 };
 
 #define NTASKS (sizeof(tasks)/sizeof(struct pals_conf_task))
@@ -49,7 +49,7 @@ struct pals_conf_con cons[] = {
 	{.name = CON2, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK2, .n_peers = 0},
 	{.name = CON3, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK3, .n_peers = 0},
 	{.name = CON4, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK4, .n_peers = 0},
-	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0}	// new
+	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0},////////////////////////////////////////////////////
 
 };
 
@@ -61,9 +61,9 @@ struct pals_conf pals_conf = {
 	.period = PERIOD,
 	.mcast_addr = "226.1.1.1",
 	.mcast_port = 4511,
-	.n_tasks = 5,	// origin: 4
+	.n_tasks = 5,//origin:4//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	.tasks = tasks,
-	.n_cons = 5,	//origin:4	
+	.n_cons = 5,//origin:4//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	.cons = cons
 };
 
@@ -72,7 +72,7 @@ pals_tx_port_t *tx_port;
 
 // routine for each period
 
-int scnt=0;	// 1st time, To connect andriod client for tasklet_server
+int scnt=0;
 int server_sockfd=-1, client_sockfd=-1, sockfd=-1;
 int state, client_len;
 int yes;
@@ -100,7 +100,6 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 	
 	if(scnt==0){
 
-		//// Task start 
 		printf("task%d(%d): (base_time={sec=%llu,nsec=%llu}, start_time={sec=%llu,nsec=%llu})\n",
 				id+1, round[id], base_time->sec, base_time->nsec, start_time->sec, start_time->nsec);
 
@@ -124,11 +123,6 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 				}
 			}
 		}
-		
-		//////////////////////////////
-		// Connect to Andriod client /
-		//////////////////////////////
-
 		if ((server_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 			perror("socket error : ");
 			exit(0);
@@ -160,9 +154,11 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 
 		client_len = sizeof(clientaddr);
 		client_sockfd = accept(server_sockfd, (struct sockaddr*) &clientaddr, &client_len);
-		scnt++;
+
 	}
-	else{	//  scnt is non-zero
+	scnt++;
+
+	if(scnt!=0){
 		if (read(client_sockfd, sbuf, sizeof(sbuf)) > 0) {
 			printf("read:%s\n",sbuf);
 			printf("task%d(%d): (base_time={sec=%llu,nsec=%llu}, start_time={sec=%llu,nsec=%llu})\n",
@@ -197,6 +193,8 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 	return 0;
 
 }
+
+
 
 int tasklet_acc(pals_task_t *task, int phase, void *arg)
 {
@@ -419,22 +417,6 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 			ret = pals_recv(rx_port[i], buf, sizeof(buf));
 			if (ret < 0) {
 				perror("recv");
-				switch(i){
-					case 1:	
-						r_acc = 0;	
-						break;
-					case 2: 
-						r_brk = 0;
-						speed = 0;
-						r_acc = 0;
-						break;
-					case 3: 
-						rot=90;
-						break;
-					default: 
-						printf("task%d(%d): received(con%d) message = '%s'\n", id+1, round[id], i+1, buf); 
-						break;
-				}
 			} else {
 				switch(i){
 					case 1:	
@@ -503,6 +485,12 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 				rv = rv + (dmin_rv/( 6 + speed));
 			}						
 		}
+/*
+		// reset
+		if(speed < 0 && (lv ==1500 %% rv==1500)){
+			speed = 0;
+		}
+*/			
 	}else{		// speed is zero
 		lv= lv-1;
 		rv= rv+1;
@@ -563,14 +551,22 @@ int main(int argc, char *argv[])
 	printf("%s start at {sec=%lld, nsec=%lld}\n", pals_env_get_name(env), time.sec, time.nsec);
 
 	sprintf(name, "task%d", id+1);
-	
+	/*
+	   if(id+1==1){
+	//task = pals_task_open(env, name, tasklet1, (void*)(long)id);
+	task = pals_task_open(env, name, tasklet_server, (void*)(long)id);
+	}
+	else if(id+1==2){
+	task = pals_task_open(env, name, tasklet_b, (void*)(long)id);
+	}
+	 */
 	switch (id+1) {
 		case 1 : task = pals_task_open(env, name, tasklet_server, (void*)(long)id); break;
 		case 2 : task = pals_task_open(env, name, tasklet_acc, (void*)(long)id); break;
 		case 3 : task = pals_task_open(env, name, tasklet_brk, (void*)(long)id);; break;
 		case 4 : task = pals_task_open(env, name, tasklet_rot, (void*)(long)id);; break;
 		case 5 : task = pals_task_open(env, name, tasklet_ard, (void*)(long)id); break;
-		default : break;
+		default : ; break;
 	}
 
 	if (task == NULL) {

@@ -20,7 +20,7 @@
 #include "active-standby/active-standby.h"
 
 //#define PERIOD 1000000000L   // 2.0 sec
-#define PERIOD 1000000000L
+#define PERIOD 100000000L
 
 //#define MY_IPADDR "10.0.1.65"
 
@@ -43,10 +43,10 @@
 // tasks
 struct pals_conf_task tasks[] = {
 	{.name = TASK1, .prio = 4, .ip_addr = "127.0.0.1", .port = 4321, .rate = 1, .offset = 0},
-	{.name = TASK2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4322, .rate = 2, .offset = 0},
-	{.name = TASK3, .prio = 4, .ip_addr = "127.0.0.1", .port = 4323, .rate = 3, .offset = 0},
-	{.name = TASK4, .prio = 4, .ip_addr = "127.0.0.1", .port = 4324, .rate = 3, .offset = 0},
-	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 3, .offset = 0}	// new
+	{.name = TASK2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4322, .rate = 1, .offset = 0},
+	{.name = TASK3, .prio = 4, .ip_addr = "127.0.0.1", .port = 4323, .rate = 1, .offset = 0},
+	{.name = TASK4, .prio = 4, .ip_addr = "127.0.0.1", .port = 4324, .rate = 1, .offset = 0},
+	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 1, .offset = 0}	// new
 };
 
 #define NTASKS (sizeof(tasks)/sizeof(struct pals_conf_task))
@@ -422,14 +422,11 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 	int speed = 0;
 	
 	// open file descriptor for xuart connection
-	if(acnt==0){
-		w_fd = open(XUART1, O_RDWR | O_NOCTTY );
-		if( w_fd < 0 ){
-			perror(XUART1);
-			return -1;       
-		}
+	w_fd = open(XUART1, O_RDWR | O_NOCTTY );
+	if( w_fd < 0 ){
+		perror(XUART1);
+		return -1;       
 	}
-	//acnt++;
 
 	round[id]++;
 	base_time = pals_task_get_base_time(task);
@@ -561,6 +558,7 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 	ret = write(w_fd, &lv, sizeof(lv));
 	ret = write(w_fd, &rv, sizeof(rv));
 
+	close(w_fd);
 	return 0;
 
 }

@@ -17,8 +17,6 @@
 #include <netdb.h>
 #include <ifaddrs.h>
 
-#include "active-standby/active-standby.h"
-
 //#define PERIOD 1000000000L   // 2.0 sec
 #define PERIOD 100000000L
 

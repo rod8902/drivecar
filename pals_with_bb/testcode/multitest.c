@@ -14,15 +14,21 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <netdb.h>
+#include <ifaddrs.h>
+
 #include "active-standby/active-standby.h"
 
 //#define PERIOD 1000000000L   // 2.0 sec
 #define PERIOD 1000000000L
-#define TASK1	"Server"
-#define TASK2	"Accel"
-#define TASK3	"Brake"
-#define TASK4	"Turn"
-#define TASK5	"Arduino"
+
+//#define MY_IPADDR "10.0.1.65"
+
+#define TASK1	"task1"
+#define TASK2	"task2"
+#define TASK3	"task3"
+#define TASK4	"task4"
+#define TASK5	"task5"
 
 #define CON1	"con1"
 #define CON2	"con2"
@@ -68,75 +74,6 @@ struct pals_conf pals_conf = {
 	.cons = cons
 };
 
-enum {
-    INACTIVE = 0,
-    ACTIVE = 1,
-    STANDBY = 2
-};
-
-int myside; // 1 or 2
-int mystate = INACTIVE;
-int other_state = INACTIVE;
-int cmd;
-pals_rx_port_t *cmd_port;
-pals_tx_port_t *state_tx_port;
-pals_rx_port_t *state_rx_port;
-
-// routine for each period
-int tasklet_side(pals_task_t *task, int phase, void *arg)
-{
-		static int round;
-		int ret;
-		const pals_time_t *base_time, *start_time;
-
-		round++;
-		base_time = pals_task_get_base_time(task);
-		start_time = pals_task_get_start_time(task);
-
-		printf("side%d(%d): (base_time={sec=%llu,nsec=%llu}, start_time={sec=%llu,nsec=%llu})\n",
-						myside, round, base_time->sec, base_time->nsec, start_time->sec, start_time->nsec);
-
-		ret = pals_recv(state_rx_port, &other_state, sizeof(other_state));
-		if (ret < 0) {
-				// no alive message
-				other_state = INACTIVE;
-				printf("  side%d: NO_MSG from %s\n", myside, (myside == 1) ? SIDE2 : SIDE1);
-		}
-
-		ret = pals_recv(cmd_port, &cmd, sizeof(cmd));
-		if (ret < 0) {
-				// no toggle message
-				cmd = NO_MSG;
-		}
-
-		// decide current state
-		if (mystate == other_state) {
-				mystate = (myside == 1)? ACTIVE : STANDBY;
-		} else if (mystate == INACTIVE) {
-				// the other side alive aleady before me
-				mystate = STANDBY;
-				assert(other_state == ACTIVE);
-		} else if (other_state == INACTIVE) {
-				mystate = ACTIVE;
-		} else if (cmd == TOGGLE) {
-				// flip the state
-				mystate = (mystate == ACTIVE)? STANDBY : ACTIVE;
-				printf("  side%d: toggle to %s state\n", myside, (mystate==ACTIVE)? "ACTIVE" : "STANDBY");
-		}
-		printf("  side%d: My State = %s\n", myside, (mystate==ACTIVE)? "ACTIVE" : "STANDBY");
-
-		// send my state to the other
-		ret = pals_send(state_tx_port, &mystate, sizeof(mystate));
-		if (ret < 0) {
-				perror("send");
-				return -1;
-		}
-
-		assert(ret == sizeof(mystate));
-
-		return 0;
-}
-
 pals_rx_port_t *rx_port[NCONS];
 pals_tx_port_t *tx_port;
 
@@ -160,9 +97,13 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 	int id = (long)arg;
 	int i;
 
-
 	char sbuf[13]={0};
-
+	
+	struct ifaddrs *ifaddr, *ifa;
+	int s;
+	char host[NI_MAXHOST];
+	char my_ipaddr[NI_MAXHOST];
+	
 	round[id]++;
 	base_time = pals_task_get_base_time(task);
 	start_time = pals_task_get_start_time(task);
@@ -197,20 +138,45 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 		//////////////////////////////
 		// Connect to Andriod client /
 		//////////////////////////////
+		
+		if( getifaddrs(&ifaddr) == -1){
+			perror("getifaddrs");
+			exit(0);
+		}
+		
+		for(ifa = ifaddr; ifa !=NULL; ifa = ifa->ifa_next){
+			if(ifa->ifa_addr == NULL)
+				continue;
+
+			s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+
+			//if((strcmp(ifa->ifa_name, "wlan0")==0) && (ifa->ifa_addr->sa_family==AF_INET)){
+			if((strcmp(ifa->ifa_name, "eth0")==0) && (ifa->ifa_addr->sa_family==AF_INET)){
+				if( s != 0){
+					printf("getnameinfo() failed\n");
+					exit(0);
+				}
+				strncpy(my_ipaddr, host, NI_MAXHOST);
+			}
+		}
+
 
 		if ((server_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 			perror("socket error : ");
 			exit(0);
 		}
 
+		printf("IPv4: %s\n", my_ipaddr);
+
 		memset(&serveraddr, 0x00, sizeof(serveraddr));
 		serveraddr.sin_family = AF_INET;
-		serveraddr.sin_addr.s_addr = inet_addr("10.0.1.65");
+		serveraddr.sin_addr.s_addr = inet_addr(my_ipaddr);	//
 		serveraddr.sin_port = htons(9000);
 
 		setsockopt(server_sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
-		state = bind(server_sockfd, (struct sockaddr *)&serveraddr,
-				sizeof(serveraddr));
+		state = bind(server_sockfd, (struct sockaddr *)&serveraddr,	sizeof(serveraddr));
+
+		printf("********TCP Server Waiting **********\n");
 
 		if (state == -1) {
 			perror("bind error : ");
@@ -230,6 +196,7 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 		client_len = sizeof(clientaddr);
 		client_sockfd = accept(server_sockfd, (struct sockaddr*) &clientaddr, &client_len);
 		scnt++;
+
 	}
 	else{	//  scnt is non-zero
 		if (read(client_sockfd, sbuf, sizeof(sbuf)) > 0) {
@@ -660,9 +627,7 @@ int main(int argc, char *argv[])
 				return -1;
 			}
 		} else {
-			printf("%s\n", name);
 			rx_port[i] = pals_rx_port_open(task, name);
-			printf("%s done\n", name);
 			if (rx_port[i] == NULL) {
 				perror("rx port open\n");
 				return -1;

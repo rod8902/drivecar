@@ -148,8 +148,8 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 
 			s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
 
-			//if((strcmp(ifa->ifa_name, "wlan0")==0) && (ifa->ifa_addr->sa_family==AF_INET)){
-			if((strcmp(ifa->ifa_name, "eth0")==0) && (ifa->ifa_addr->sa_family==AF_INET)){
+			if((strcmp(ifa->ifa_name, "wlan0")==0) && (ifa->ifa_addr->sa_family==AF_INET)){
+			//if((strcmp(ifa->ifa_name, "eth0")==0) && (ifa->ifa_addr->sa_family==AF_INET)){
 				if( s != 0){
 					printf("getnameinfo() failed\n");
 					exit(0);
@@ -289,7 +289,7 @@ int tasklet_acc(pals_task_t *task, int phase, void *arg)
 int tasklet_brk(pals_task_t *task, int phase, void *arg)
 {
 	static int round[NTASKS];
-	char buf[100];
+	char buf[100] = {0};
 	int ret;
 	int len;
 	const pals_time_t *base_time, *start_time;
@@ -342,7 +342,7 @@ int tasklet_brk(pals_task_t *task, int phase, void *arg)
 int tasklet_rot(pals_task_t *task, int phase, void *arg)
 {
 	static int round[NTASKS];
-	char buf[100];
+	char buf[100] = {0};
 	int ret;
 	int len;
 	const pals_time_t *base_time, *start_time;
@@ -401,7 +401,7 @@ int rv = 1500;	// 1400 ~ 1500
 int tasklet_ard(pals_task_t *task, int phase, void *arg){
 
 	static int round[NTASKS];
-	char buf[100];
+	char buf[100]={0};
 	int ret;
 	int len;
 	const pals_time_t *base_time, *start_time;
@@ -565,7 +565,7 @@ int main(int argc, char *argv[])
 {
 	pals_env_t *env;
 	pals_task_t *task = NULL;
-	char name[100];
+	char name[100] = {0};
 	pals_time_t time;
 	int i;
 	int id;

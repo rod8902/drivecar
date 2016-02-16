@@ -21,6 +21,8 @@ int task_right(pals_task_t *task, int phase, void *arg){
 		int dv = 0;	// 가속 수준
 		int dev = 0;	// 편차
 
+		int goal=0;
+
 		round++;
 		base_time = pals_task_get_base_time(task);
 		start_time = pals_task_get_start_time(task);

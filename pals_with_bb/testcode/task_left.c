@@ -127,22 +127,15 @@ int task_left(pals_task_t *task, int phase, void *arg){
 
 		}
 
-		printf(" lv = %d\n", lv);
+		printf("pre_lv = %d\n", lv);
 
 		if( lv > 1600 ){
 				lv = 1600;
 		}else if(lv < 1500){
 				lv = 1500;
 		}
-		/*
-		   if( rv > 1500 ){
-		   rv = 1500;
-		   }else if(rv < 1400){
-		   rv = 1400;
-		   }
-		 */
-		//	ret = write(w_fd, &lv, sizeof(lv));
-		//	ret = write(w_fd, &rv, sizeof(rv));
+		
+		printf("post_lv = %d\n", lv);
 
 		ret = pals_send(tx_port, &lv , sizeof(lv));
 		if ( ret < 0) {

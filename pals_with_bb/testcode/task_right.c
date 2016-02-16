@@ -124,7 +124,7 @@ int task_right(pals_task_t *task, int phase, void *arg){
 
 		}
 
-		printf(" rv = %d\n", rv);
+		printf("pre_rv = %d\n", rv);
 		/*
 		   if( lv > 1600 ){
 		   lv = 1600;
@@ -138,6 +138,7 @@ int task_right(pals_task_t *task, int phase, void *arg){
 				rv = 1400;
 		}
 
+		printf("post_rv = %d\n", rv);
 		//	ret = write(w_fd, &lv, sizeof(lv));
 		//	ret = write(w_fd, &rv, sizeof(rv));
 

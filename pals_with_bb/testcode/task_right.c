@@ -63,7 +63,7 @@ int task_right(pals_task_t *task, int phase, void *arg){
 		}else
 				delta = 0;
 
-		cv = (cv + (goal - cv)/((goal-cv>0)? POSITIVE_RATE : NEGATIVE-RATE)) + delta; //`* info.rot/180; 
+		cv = (cv + (goal - cv)/((goal-cv>0)? POSITIVE_RATE : NEGATIVE_RATE)) + delta; //`* info.rot/180; 
 		
 		if( cv < 0 ){
 			cv = 0;

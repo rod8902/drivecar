@@ -32,7 +32,9 @@
 
 #define XUART1 "/dev/ttyS0"
 #define DIV	10
-#define RATE 20
+#define POSITIVE_RATE 10
+#define NEGATIVE_RATE 30
+
 struct pals_conf_task tasks[] = {
 		{.name = TASKSERVER, .prio = 4, .ip_addr = "127.0.0.1", .port = 4321, .rate = 1, .offset = 0},
 		{.name = TASKARDU, .prio = 4, .ip_addr = "127.0.0.1", .port = 4322, .rate = 1, .offset = 0},

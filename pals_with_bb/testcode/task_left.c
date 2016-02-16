@@ -51,20 +51,21 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		
 		// dv is from +5 to -5
 		dv = (info.acc - info.brk);
-		if(dv > 0){
-			goal = RATE*dv/DIV;
-		}else{
-			goal = 0;
-		}
+		
+		goal = ((goal-cv>0) ? POSITIVE_RATE : NEGATIVE_RATE) *dv/DIV;
 
 		if ( goal-cv > 0 ){
 			delta = 1;
-		}else if( goal -cv < 0){
+		}else if( goal - cv < 0){
 			delta = -1;
 		}else
 			delta = 0;
 
-		cv = (cv + (goal - cv)/RATE) + delta; //* info.rot/180; 
+		cv = (cv + (goal - cv)/((goal-cv>0)? POSITIVE_RATE : NEGATIVE-RATE)) + delta; //`* info.rot/180; 
+		
+		if( cv < 0 ){
+			cv = 0;
+		}
 		
 		if(info.rot > 90){
 			info.rot = 90;

@@ -77,8 +77,7 @@ int task_left(pals_task_t *task, int phase, void *arg){
 				lv = lv-1;
 
 		}
-*/
-/*
+
 		printf("pre_lv = %d\n", lv);
 
 		if( lv > (1500+goal) ){

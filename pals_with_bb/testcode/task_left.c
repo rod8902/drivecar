@@ -23,6 +23,9 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		int dev = 0;
 		//int dmin_lv = lv - 1500;
 
+		int wheel_velocity = 0;
+		int wheel_control = 0;
+
 		round++;
 		base_time = pals_task_get_base_time(task);
 		start_time = pals_task_get_start_time(task);
@@ -46,22 +49,19 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		//rot = info.rot;
 		
 		// dv is from +5 to -5
-		dv = (info.acc - info.brk)/DIV;
+		dv = (info.acc - info.brk);
 		if(dv > 0){
-			goal = RATE*dv;
+			goal = RATE*dv/DIV;
 		}else{
 			goal = 0;
 		}
-		dev = info.rot/30 ;	// from 0 to 6
-		cv = (cv + (goal - cv)/RATE) * info.rot/180; 
 
-		if ( cv > goal){
-			cv = goal;
-		}else if (cv < 0){
-			cv = 0;
-		}
+		cv = (cv + (goal - cv)/RATE); //* info.rot/180; 
 		
-		lv = 1500 + cv;	
+		wheel_velocity = cv * info.rot /180;
+
+		wheel_control = 1500 + wheel_velocity;	
+		
 		printf("dv=%d, cv=%d, goal=%d, dev=%d, lv=%d\n", dv, cv, goal, dev, lv);
 
 /*

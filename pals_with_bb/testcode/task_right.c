@@ -85,8 +85,8 @@ int task_right(pals_task_t *task, int phase, void *arg){
 
 		if( rv > 1500 ){
 			rv = 1500;
-		}else if(rv < 1500-RATE*dv){
-			rv = 1500-RATE*dv;
+		}else if(rv < 1500-goal){
+			rv = 1500-goal;
 		}
 
 		printf("post_rv = %d\n", rv);

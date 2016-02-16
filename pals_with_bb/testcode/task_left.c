@@ -62,6 +62,7 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		}
 		
 		lv = 1500 + cv;	
+		printf("dv=%d, cv=%d, goal=%d, dev=%d, lv=%d\n", dv, cv, goal, dev, lv);
 
 /*
 		if( dv != 0 ){

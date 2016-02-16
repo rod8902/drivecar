@@ -61,7 +61,10 @@ int task_right(pals_task_t *task, int phase, void *arg){
 			cv =0;
 		}
 
-		rv = 1490 - cv;	
+		rv = 1500 - cv;	
+		
+		printf("dv=%d, cv=%d, goal=%d, dev=%d, rv=%d\n", dv, cv, goal, dev, rv);
+
 /*
 		if( dv != 0 ){
 				if(rot >= 85 && rot <= 95){	// straight

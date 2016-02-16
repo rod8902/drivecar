@@ -19,7 +19,7 @@
 
 //#include "active-standby/active-standby.h"
 
-#define PERIOD 100000000L
+#define PERIOD 500000000L
 
 #define TASKSERVER "task_server"
 #define TASKARDU "task_arduino"

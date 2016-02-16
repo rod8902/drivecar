@@ -17,9 +17,8 @@
 #include <netdb.h>
 #include <ifaddrs.h>
 
-//#include "active-standby/active-standby.h"
 
-#define PERIOD 500000000L
+#define PERIOD 300000000L
 
 #define TASKSERVER "task_server"
 #define TASKARDU "task_arduino"
@@ -32,7 +31,8 @@
 #define CON4 "con4"
 
 #define XUART1 "/dev/ttyS0"
-
+#define DIV	10
+#define RATE 20
 struct pals_conf_task tasks[] = {
 		{.name = TASKSERVER, .prio = 4, .ip_addr = "127.0.0.1", .port = 4321, .rate = 1, .offset = 0},
 		{.name = TASKARDU, .prio = 4, .ip_addr = "127.0.0.1", .port = 4322, .rate = 1, .offset = 0},

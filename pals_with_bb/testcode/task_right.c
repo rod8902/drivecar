@@ -23,6 +23,12 @@ int task_right(pals_task_t *task, int phase, void *arg){
 
 		int goal=0;
 
+		int wheel_velocity = 0;
+		int wheel_control = 0;
+	
+		int delta = 0;
+
+
 		round++;
 		base_time = pals_task_get_base_time(task);
 		start_time = pals_task_get_start_time(task);
@@ -46,24 +52,30 @@ int task_right(pals_task_t *task, int phase, void *arg){
 		printf("acc = %d, brk = %d, rot = %d, dv = %d\n", info.acc, info.brk, info.rot, dv);
 	
 		// dv is from +5 to -5
-		dv = (info.acc - info.brk)/DIV;
+		dv = (info.acc - info.brk);
 		if(dv > 0){
-			goal = RATE*dv;
+			goal = RATE*dv/DIV;
 		}else{
 			goal = 0;
 		}
-		dev = 6 - info.rot/30 ;	// from 0 to 6
-		cv = (cv + (goal - cv)/RATE) * dev; 
 
-		if( cv > goal){
-			cv = goal;
-		}else if (cv < 0){
-			cv =0;
+		if ( goal-cv > 0 ){
+				delta = 1;
+		}else if( goal -cv < 0){
+				delta = -1;
+		}else
+				delta = 0;
+
+		cv = (cv + (goal - cv)/RATE) + delta; 
+	
+		if(info.rot > 90){
+			info.rot = 90;
 		}
+		wheel_velocity = cv * info.rot /90;
 
-		rv = 1500 - cv;	
+		wheel_control = 1500 + wheel_velocity;	
 		
-		printf("dv=%d, cv=%d, goal=%d, dev=%d, rv=%d\n", dv, cv, goal, dev, rv);
+		printf("dv=%d, cv=%d, goal=%d, wheel_velocity=%d, wheel_control=%d, delta = %d\n", dv, cv, goal, wheel_velocity, wheel_control, delta);
 
 /*
 		if( dv != 0 ){
@@ -80,7 +92,7 @@ int task_right(pals_task_t *task, int phase, void *arg){
 		}else{		// dv is zero
 				rv= rv+1;
 		}
-*/
+
 		printf("pre_rv = %d\n", rv);
 
 		if( rv > 1500 ){
@@ -90,12 +102,12 @@ int task_right(pals_task_t *task, int phase, void *arg){
 		}
 
 		printf("post_rv = %d\n", rv);
-		
-		ret = pals_send(tx_port, &rv, sizeof(rv));
+*/		
+		ret = pals_send(tx_port, &wheel_control, sizeof(wheel_control));
 		if (ret < 0) {
 				perror("send");
 		} else {
-				printf("task_right(%d): sent a message(len=%d)\n", round, sizeof(rv));
+				printf("task_right(%d): sent a message(len=%d)\n", round, sizeof(wheel_control));
 		}
 
 		return 0;

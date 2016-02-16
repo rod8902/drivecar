@@ -66,7 +66,10 @@ int task_left(pals_task_t *task, int phase, void *arg){
 
 		cv = (cv + (goal - cv)/RATE) + delta; //* info.rot/180; 
 		
-		wheel_velocity = cv * info.rot /180;
+		if(info.rot > 90){
+			info.rot = 90;
+		}
+		wheel_velocity = cv * info.rot /90;
 
 		wheel_control = 1500 + wheel_velocity;	
 		

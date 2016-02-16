@@ -71,8 +71,6 @@ int task_server(pals_task_t *task, int phase, void *args){
 				client_len = sizeof(clientaddr);
 				client_sockfd = accept(server_sockfd, (struct sockaddr*)&clientaddr, &client_len);
 				check = 0;
-				flag = fcntl(client_sockfd, F_GETFL, 0);
-				fcntl(client_sockfd, F_SETFL, flag|O_NONBLOCK);
 
 		}
 		else{

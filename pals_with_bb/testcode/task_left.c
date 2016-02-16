@@ -24,6 +24,8 @@ int task_left(pals_task_t *task, int phase, void *arg){
 
 		int wheel_velocity = 0;
 		int wheel_control = 0;
+	
+		int delta = 0;
 
 		round++;
 		base_time = pals_task_get_base_time(task);
@@ -55,13 +57,20 @@ int task_left(pals_task_t *task, int phase, void *arg){
 			goal = 0;
 		}
 
-		cv = (cv + (goal - cv)/RATE); //* info.rot/180; 
+		if ( goal-cv > 0 ){
+			delta = 1;
+		}else if( goal -cv < 0){
+			delta = -1;
+		}else
+			delta = 0;
+
+		cv = (cv + (goal - cv)/RATE) + delta; //* info.rot/180; 
 		
 		wheel_velocity = cv * info.rot /180;
 
 		wheel_control = 1500 + wheel_velocity;	
 		
-		printf("dv=%d, cv=%d, goal=%d, wheel_control=%d\n", dv, cv, goal, wheel_control);
+		printf("dv=%d, cv=%d, goal=%d, wheel_velocity=%d, wheel_control=%d, delta = %d\n", dv, cv, goal, wheel_velocity, wheel_control, delta);
 
 /*
 		if( dv != 0 ){

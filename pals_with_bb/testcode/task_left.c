@@ -1,22 +1,3 @@
-#include <pals.h>
-#include <stdio.h>
-#include <assert.h>
-#include <stdlib.h>
-
-#include <fcntl.h>
-#include <time.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <string.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <netdb.h>
-#include <ifaddrs.h>
-
 #include "controlInfo.h"
 
 #define DIV	10	// rod
@@ -25,15 +6,6 @@ pals_rx_port_t *rx_port;
 pals_tx_port_t *tx_port;
 
 // routine for each period
-
-int scnt=0;	// 1st time, To connect andriod client for tasklet_server
-int server_sockfd=-1, client_sockfd=-1, sockfd=-1;
-int state, client_len;
-int yes;
-struct sockaddr_in clientaddr, serveraddr;
-
-int acnt=0;
-
 int lv = 1500;	// 1500 ~ 1600
 int rv = 1500;	// 1400 ~ 1500
 
@@ -43,7 +15,7 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		int ret;
 		const pals_time_t *base_time, *start_time;
 		int id = (long)arg;
-		int i;
+		int i=0;
 
 		int dir = 0;
 

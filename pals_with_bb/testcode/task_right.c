@@ -1,22 +1,3 @@
-#include <pals.h>
-#include <stdio.h>
-#include <assert.h>
-#include <stdlib.h>
-
-#include <fcntl.h>
-#include <time.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <string.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <netdb.h>
-#include <ifaddrs.h>
-
 #include "controlInfo.h"
 
 #define DIV	10	// rod

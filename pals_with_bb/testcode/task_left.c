@@ -1,6 +1,7 @@
 #include "controlInfo.h"
 
 pals_rx_port_t *rx_port;
+pals_rx_port_t *right_rx_port;
 pals_tx_port_t *tx_port;
 
 int cv = 0;
@@ -15,12 +16,8 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		int id = (long)arg;
 		int i=0;
 
-		int rot = 90;
-
 		int dv = 0;
 		int goal = 0;
-		int dev = 0;
-		//int dmin_lv = lv - 1500;
 
 		int wheel_velocity = 0;
 		int wheel_control = 0;
@@ -78,31 +75,15 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		
 		printf("dv=%d, cv=%d, goal=%d, wheel_velocity=%d, wheel_control=%d, delta = %d\n", dv, cv, goal, wheel_velocity, wheel_control, delta);
 
-/*
-		if( dv != 0 ){
-				if(rot >= 85 && rot <= 95){	// straight
-						lv = lv + dv;
-						//좌회전에서 직진으로 변경시, 왼쪽바퀴의 속도를 이전 상태의 각도와 현재 각도 차 만큼 추가적으로 보정한다 
-				}else if(rot>=0 && rot<85){		// Turn left
-						lv = 1510 + RATE*(dv-1);
-				}else if(rot>95 && rot<=180){	// Turn right
-						lv = 1510 + (RATE-2)*(dv-1) + (18 - (rot*2)/DIV );
-				}
-		}else{		// dv is zero
-				lv = lv-1;
+		ret = pals_recv(right_rx_port, &info, sizeof(info));
+		if (ret < 0) {
+				perror("recv from right");
+				wheel_control = 1500;
 
+		} else {
+				printf("task%d(%d): received(con%d) message = '%d %d %d'\n", id+1, round, i+1, info.acc, info.brk, info.rot );
 		}
 
-		printf("pre_lv = %d\n", lv);
-
-		if( lv > (1500+goal) ){
-				lv = 1500+goal;
-		}else if(lv < 1500){
-				lv = 1500;
-		}
-		
-		printf("post_lv = %d\n", lv);
-*/
 		ret = pals_send(tx_port, &wheel_control , sizeof(wheel_control));
 		if ( ret < 0) {
 				perror("send");
@@ -156,6 +137,15 @@ int main(int argc, char *argv[])
 
 		rx_port = pals_rx_port_open(task, name);
 		if (rx_port == NULL) {
+				perror("rx port open\n");
+				return -1;
+		}
+
+		sprintf(name, "con4");
+
+		right_rx_port = pals_rx_port_open(task, name);
+
+		if (right_rx_port == NULL) {
 				perror("rx port open\n");
 				return -1;
 		}

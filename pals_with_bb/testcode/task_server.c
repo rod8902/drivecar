@@ -6,12 +6,11 @@ struct sockaddr_in clientaddr, serveraddr;
 int server_sockfd=-1, client_sockfd=-1, sockfd=-1;
 int state, client_len, yes;
 int check = 1;
-int flag;
 cntInfo cn;
 int task_server(pals_task_t *task, int phase, void *args){
-		cn.acc = 0;
-		cn.brk = 0;
-		cn.rot = 0;
+
+		makeSocketNonBlocking(client_sockfd);
+
 		char sbuf[13] = {0};
 		int ret, s;
 		const pals_time_t *base_time, *start_time;

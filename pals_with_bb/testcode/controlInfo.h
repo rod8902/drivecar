@@ -67,5 +67,8 @@ typedef struct cntInfo{
 		int brk;
 		int rot;
 }cntInfo; // 컨트롤정보를 가지는 구조체
-
+int makeSocketNonBlocking(int sock){
+		int curFlags = fcntl(sock, F_GETFL, 0);
+		return fcntl(sock, F_SETFL, curFlags | O_NONBLOCK) >= 0;
+}
 #endif //CONTROLINFO_H_

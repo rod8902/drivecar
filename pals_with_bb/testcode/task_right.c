@@ -3,8 +3,8 @@
 pals_rx_port_t *rx_port;
 pals_tx_port_t *tx_port;
 
-int lv = 1500;	// 1500 ~ 1600
 int rv = 1500;	// 1400 ~ 1500
+int cv = 0;	// 현재 속도
 
 cntInfo info;
 
@@ -18,8 +18,8 @@ int task_right(pals_task_t *task, int phase, void *arg){
 
 		int rot = 90;
 
-		int dv = 0;
-		int dmin_rv = 1500 - rv;
+		int dv = 0;	// 가속 수준
+		int dev = 0;	// 편차
 
 		round++;
 		base_time = pals_task_get_base_time(task);
@@ -39,53 +39,36 @@ int task_right(pals_task_t *task, int phase, void *arg){
 				printf("task%d(%d): received(con%d) message = '%d %d %d'\n", id+1, round, i+1, info.acc, info.brk, info.rot); 
 
 		}
-		
-		// dv is from +5 to -5
-		dv = dv + info.acc/DIV - info.brk/DIV;
-		rot = info.rot;
+		//rot = info.rot;
 
 		printf("acc = %d, brk = %d, rot = %d, dv = %d\n", info.acc, info.brk, info.rot, dv);
+	
+		// dv is from +5 to -5
+		dv = (info.acc - info.brk)/DIV;
+		if(dv > 0){
+			goal = RATE*dv;
+		}else{
+			goal = 0;
+		}
+		dev = 6 - info.rot/30 ;	// from 0 to 6
+		cv = (cv + (goal - cv)/RATE) * dev; 
+		rv = 1490 - cv;	
+/*
 		if( dv != 0 ){
 				if(rot >= 85 && rot <= 95){	// straight
 						rv = rv - dv;
 
 						//우회전에서 직진으로 변경시, 오른쪽 바퀴의 속도를 이전 상태의 각도와 현개 각도 차 만큼 추가적으로 보정한다
 				}else if(rot>=0 && rot<85){		// Turn left
-						/*
-						if( dv > 0 ){
-							rv = rv - rot*2;
-						}else{	// left turn and dv_down
-								//lv = lv - (dmin_lv/(6 + dv));
-								rv = rv + (dmin_rv/(6 + dv));
-						}
-						*/
-						rv = 1490 - RATE*(dv-1);
+					rv = 1490 - RATE*(dv-1);
 				}else if(rot>95 && rot<=180){	// rot: 96~180
-						/*
-						if( dv > 0 ){
-								if( rv > 1400+(rot-90) ){
-										rv = rv - (rot-90) - dv;
-										if( rv <= 1400+(rot-90) ){
-												rv = 1400+(rot-90);
-										}
-								}else if( rv < 1400+(rot-90) ){
-										rv = rv + (rot-90) + dv;
-										if( rv >= 1400+(rot-90) ){
-												rv = 1400+(rot-90);
-										}
-								}
-								//lv = lv + (rot-90)*2; 
-						}else{
-								//lv = lv - (dmin_lv/( 6 + dv));
-								rv = rv + (dmin_rv/( 6 + dv));
-						}*/
-						rv = 1490 - RATE*(dv-1) - (((rot-90)*2)/DIV + 1);
+					rv = 1490 - RATE*(dv-1) - (((rot-90)*2)/DIV + 1);
 				}
 				
 		}else{		// dv is zero
 				rv= rv+1;
 		}
-
+*/
 		printf("pre_rv = %d\n", rv);
 
 		if( rv > 1500 ){
@@ -104,7 +87,6 @@ int task_right(pals_task_t *task, int phase, void *arg){
 		}
 
 		return 0;
-
 }
 
 int main(int argc, char *argv[])

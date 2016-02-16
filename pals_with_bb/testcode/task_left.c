@@ -4,7 +4,7 @@ pals_rx_port_t *rx_port;
 pals_tx_port_t *tx_port;
 
 int lv = 1500;	// 1500 ~ 1600
-int rv = 1500;	// 1400 ~ 1500
+int cv = 0;
 
 cntInfo info;
 
@@ -19,7 +19,9 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		int rot = 90;
 
 		int dv = 0;
-		int dmin_lv = lv - 1500;
+		int goal = 0;
+		int dev = 0;
+		//int dmin_lv = lv - 1500;
 
 		round++;
 		base_time = pals_task_get_base_time(task);
@@ -38,48 +40,36 @@ int task_left(pals_task_t *task, int phase, void *arg){
 				printf("task%d(%d): received(con%d) message = '%d %d %d'\n", id+1, round, i+1, info.acc, info.brk, info.rot ); 
 		}
 		
-		// dv is from +5 to -5
-		dv = dv + info.acc/DIV - info.brk/DIV;
-		rot = info.rot;
-
+		
 		printf("acc = %d, brk = %d, rot = %d, dv = %d\n", info.acc, info.brk, info.rot, dv);
+		
+		//rot = info.rot;
+		
+		// dv is from +5 to -5
+		dv = (info.acc - info.brk)/DIV;
+		if(dv > 0){
+			goal = RATE*dv;
+		}else{
+			goal = 0;
+		}
+		dev = info.rot/30 ;	// from 0 to 6
+		cv = (cv + (goal - cv)/RATE) * dev; 
+		lv = 1510 + cv;		
+/*
 		if( dv != 0 ){
 				if(rot >= 85 && rot <= 95){	// straight
 						lv = lv + dv;
 						//좌회전에서 직진으로 변경시, 왼쪽바퀴의 속도를 이전 상태의 각도와 현재 각도 차 만큼 추가적으로 보정한다 
 				}else if(rot>=0 && rot<85){		// Turn left
-						/*
-						if( dv > 0 ){
-								if( lv > 1510+rot ){
-										lv = lv - (90-rot) - dv;
-										if( lv <=1510+rot ){
-												lv = 1510+rot;
-										}
-								}else if( lv < 1510+rot ){
-										lv = lv + (90-rot) + dv;
-										if( lv >=1510+rot ){
-												lv = 1510+rot;
-										}
-								}
-						}else{	// left turn and dv_down
-								lv = lv - (dmin_lv/(6 + dv));
-						}*/
-						lv = 1510 + (RATE-2)*(dv-1) + (18 - (rot*2)/DIV );
-				}else if(rot>95 && rot<=180){	// Turn right
-						/*
-						if( dv > 0 ){
-							lv = lv + (rot-90); 
-						}else{
-							lv = lv - (dmin_lv/( 6 + dv));
-						}
-						*/
 						lv = 1510 + RATE*(dv-1);
+				}else if(rot>95 && rot<=180){	// Turn right
+						lv = 1510 + (RATE-2)*(dv-1) + (18 - (rot*2)/DIV );
 				}
 		}else{		// dv is zero
 				lv = lv-1;
 
 		}
-
+*/
 		printf("pre_lv = %d\n", lv);
 
 		if( lv > (1500+RATE*dv) ){

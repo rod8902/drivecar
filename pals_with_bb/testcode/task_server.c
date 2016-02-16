@@ -83,7 +83,7 @@ int task_server(pals_task_t *task, int phase, void *args){
 						printf("read : %s\n", sbuf);
 						printf("servertask : base_time={sec=%llu, nsec=%llu}, start_time={sec=%llu, nsec=%llu}\n", base_time->sec, base_time->nsec, start_time->sec, start_time->nsec);
 
-
+						printf("acc=%d, brk=%d, rot=%d\n", cn.acc, cn.brk, cn.rot);
 						ret = pals_send(tx_port, &cn, sizeof(cn));
 						if(ret < 0){
 								perror("send");

@@ -52,6 +52,13 @@ int task_right(pals_task_t *task, int phase, void *arg){
 		}
 		dev = 6 - info.rot/30 ;	// from 0 to 6
 		cv = (cv + (goal - cv)/RATE) * dev; 
+
+		if( cv > goal){
+			cv = goal;
+		}else if (cv < 0){
+			cv =0;
+		}
+
 		rv = 1490 - cv;	
 /*
 		if( dv != 0 ){

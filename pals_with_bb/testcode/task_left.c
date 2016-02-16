@@ -54,7 +54,15 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		}
 		dev = info.rot/30 ;	// from 0 to 6
 		cv = (cv + (goal - cv)/RATE) * dev; 
-		lv = 1510 + cv;		
+
+		if ( cv > goal){
+			cv = goal;
+		}else if (cv < 0){
+			cv = 0;
+		}
+		
+		lv = 1500 + cv;	
+
 /*
 		if( dv != 0 ){
 				if(rot >= 85 && rot <= 95){	// straight

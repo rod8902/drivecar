@@ -53,7 +53,7 @@ int task_left(pals_task_t *task, int phase, void *arg){
 			goal = 0;
 		}
 		dev = info.rot/30 ;	// from 0 to 6
-		cv = (cv + (goal - cv)/RATE) * dev; 
+		cv = (cv + (goal - cv)/RATE) * info.rot/180; 
 
 		if ( cv > goal){
 			cv = goal;

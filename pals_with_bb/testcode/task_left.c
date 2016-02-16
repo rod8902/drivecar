@@ -3,7 +3,6 @@
 pals_rx_port_t *rx_port;
 pals_tx_port_t *tx_port;
 
-int lv = 1500;	// 1500 ~ 1600
 int cv = 0;
 
 cntInfo info;
@@ -62,7 +61,7 @@ int task_left(pals_task_t *task, int phase, void *arg){
 
 		wheel_control = 1500 + wheel_velocity;	
 		
-		printf("dv=%d, cv=%d, goal=%d, dev=%d, lv=%d\n", dv, cv, goal, dev, lv);
+		printf("dv=%d, cv=%d, goal=%d, wheel_control=%d\n", dv, cv, goal, wheel_control);
 
 /*
 		if( dv != 0 ){
@@ -79,6 +78,7 @@ int task_left(pals_task_t *task, int phase, void *arg){
 
 		}
 */
+/*
 		printf("pre_lv = %d\n", lv);
 
 		if( lv > (1500+goal) ){
@@ -88,12 +88,12 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		}
 		
 		printf("post_lv = %d\n", lv);
-
-		ret = pals_send(tx_port, &lv , sizeof(lv));
+*/
+		ret = pals_send(tx_port, &wheel_control , sizeof(wheel_control));
 		if ( ret < 0) {
 				perror("send");
 		} else {
-				printf("task_left(%d): sent a message(len=%d)\n", round, sizeof(lv));
+				printf("task_left(%d): sent a message(len=%d)\n", round, sizeof(wheel_control));
 		}
 
 		return 0;

@@ -21,6 +21,8 @@ int task_left(pals_task_t *task, int phase, void *arg){
 
 		int wheel_velocity = 0;
 		int wheel_control = 0;
+
+		int right_wheel_control = 0;
 	
 		int delta = 0;
 
@@ -75,7 +77,7 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		
 		printf("dv=%d, cv=%d, goal=%d, wheel_velocity=%d, wheel_control=%d, delta = %d\n", dv, cv, goal, wheel_velocity, wheel_control, delta);
 
-		ret = pals_recv(right_rx_port, &info, sizeof(info));
+		ret = pals_recv(right_rx_port, &right_wheel_control, sizeof(wheel));
 		if (ret < 0) {
 				perror("recv from right");
 				wheel_control = 1500;

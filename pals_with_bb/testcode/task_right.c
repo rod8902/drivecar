@@ -26,6 +26,8 @@ int task_right(pals_task_t *task, int phase, void *arg){
 	
 		int delta = 0;
 
+		int left_wheel_control = 0;
+
 
 		round++;
 		base_time = pals_task_get_base_time(task);
@@ -79,7 +81,7 @@ int task_right(pals_task_t *task, int phase, void *arg){
 		
 		printf("dv=%d, cv=%d, goal=%d, wheel_velocity=%d, wheel_control=%d, delta = %d\n", dv, cv, goal, wheel_velocity, wheel_control, delta);
 	
-		ret = pals_recv(left_rx_port, &info, sizeof(info));
+		ret = pals_recv(left_rx_port, &left_wheel_control, sizeof(left_wheel_control));
 		if (ret < 0) {
 				perror("recv from left");
 				wheel_control = 1500;

@@ -56,7 +56,7 @@ int task_right(pals_task_t *task, int phase, void *arg){
 		if( dv < 0 ){
 			goal = 0;
 		}else 
-			goal = RATE*dv/((dv < 0) ? ( 21+ 2*dv/5 ): DIV) ;
+			goal = RATE*dv/((dv > 0) ? DIV :(DIV*4)) + (dv <0) ? 2*dv : 0;
 
 
 		if ( goal-cv > 0 ){

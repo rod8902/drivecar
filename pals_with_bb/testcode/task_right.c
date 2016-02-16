@@ -17,74 +17,16 @@
 #include <netdb.h>
 #include <ifaddrs.h>
 
-//#define PERIOD 1000000000L   // 2.0 sec
-#define PERIOD 100000000L
+#include "controlInfo.h"
 
-
-#define TASK1	"task1"
-#define TASK2	"task2"
-#define TASK3	"task3"
-#define TASK4	"task4"
-#define TASK5	"task5"
-
-#define CON1	"con1"
-#define CON2	"con2"
-#define CON3	"con3"
-#define CON4	"con4"
-#define CON5	"con5"
-
-
-#define XUART1 "/dev/ttyO1"
 #define DIV	10	// rod
 
 // tasks
-struct pals_conf_task tasks[] = {
-		{.name = TASK1, .prio = 4, .ip_addr = "127.0.0.1", .port = 4321, .rate = 1, .offset = 0},
-		{.name = TASK2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4322, .rate = 1, .offset = 0},
-		{.name = TASK3, .prio = 4, .ip_addr = "127.0.0.1", .port = 4323, .rate = 1, .offset = 0},
-		{.name = TASK4, .prio = 4, .ip_addr = "127.0.0.1", .port = 4324, .rate = 1, .offset = 0},
-		{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 1, .offset = 0}	// new
-};
-
-#define NTASKS (sizeof(tasks)/sizeof(struct pals_conf_task))
-
-// connections
-struct pals_conf_con cons[] = {
-		{.name = CON1, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK1, .n_peers = 0},
-		{.name = CON2, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK2, .n_peers = 0},
-		{.name = CON3, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK3, .n_peers = 0},
-		{.name = CON4, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK4, .n_peers = 0},
-		{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0}	// new
-};
-
-#define NCONS (sizeof(cons)/sizeof(struct pals_conf_con))
-//int NCONS;
-// master configuration
-struct pals_conf pals_conf = {
-		.name = "multirate-comtest with active-standby",
-		.period = PERIOD,
-		.mcast_addr = "226.1.1.1",
-		.mcast_port = 4511,
-		.n_tasks = 5,	// origin: 4
-		.tasks = tasks,
-		.n_cons = 5,	//origin:4	
-		.cons = cons
-};
 
 pals_rx_port_t *rx_port;
 pals_tx_port_t *tx_port;
 
 // routine for each period
-
-int scnt=0;	// 1st time, To connect andriod client for tasklet_server
-int server_sockfd=-1, client_sockfd=-1, sockfd=-1;
-int state, client_len;
-int yes;
-struct sockaddr_in clientaddr, serveraddr;
-
-int acnt=0;
-
-
 
 int lv = 1500;	// 1500 ~ 1600
 int rv = 1500;	// 1400 ~ 1500
@@ -92,23 +34,23 @@ int rv = 1500;	// 1400 ~ 1500
 int task_right(pals_task_t *task, int phase, void *arg){
 
 		static int round;
-		char buf[100]={0};
+		//char buf[100]={0};
 		int ret;
-		int len;
+		//int len;
 		const pals_time_t *base_time, *start_time;
 		int id = (long)arg;
-		int i;
+		int i = 0;
 
 		int dir = 0;
 
-		int r_acc = 0, r_brk = 0, rot=90;
-
-		int dmax_lv = 1600-lv;
-		int dmax_rv = rv - 1400;
-		int dmin_lv = lv-1500;
+		//int r_acc = 0, r_brk = 0, rot=90;
+		int rot = 90;
+		//int dmax_lv = 1600-lv;
+		//int dmax_rv = rv - 1400;
+		//int dmin_lv = lv-1500;
 		int dmin_rv = 1500 - rv;
 
-		struct ctlInfo info;
+		cntInfo info;
 
 		int speed = 0;
 
@@ -123,23 +65,20 @@ int task_right(pals_task_t *task, int phase, void *arg){
 						id+1, round, base_time->sec, base_time->nsec, start_time->sec, start_time->nsec);
 		/*
 		 */
-		ret = pals_recv(rx_port[i], buf, sizeof(buf));
+		ret = pals_recv(rx_port, &info, sizeof(info));
 		if (ret < 0) {
 				perror("recv");
-				printf("task%d(%d): received(con%d) message = '%d %d %d'\n", id+1, round, i+1, info->acc, info->brk, info->rot); 
+				printf("task%d(%d): received(con%d) message = '%d %d %d'\n", id+1, round, i+1, info.acc, info.brk, info.rot); 
 
 		}
 		else {
-				printf("task%d(%d): received(con%d) message = '%d %d %d'\n", id+1, round, i+1, info->acc, info->brk, info->rot); 
+				printf("task%d(%d): received(con%d) message = '%d %d %d'\n", id+1, round, i+1, info.acc, info.brk, info.rot); 
 
 		}
+		rot = info.rot;
+		speed = speed + info.acc - info.brk;
 
-
-
-
-		speed = speed + info->acc - info->brk;
-
-		printf("acc = %d, brk = %d, rot = %d, speed = %d\n", info->acc, info->brk, info->rot, speed);
+		printf("acc = %d, brk = %d, rot = %d, speed = %d\n", info.acc, info.brk, info.rot, speed);
 		if( speed != 0 ){
 				if(rot >= 85 && rot <= 95){	// straight
 						//lv = lv + speed;
@@ -224,7 +163,7 @@ int task_right(pals_task_t *task, int phase, void *arg){
 		//	close(w_fd);
 		//sprintf(rv, "msg from task%d(%d)", id+1, round);
 		// len = strlen(rv) + 1;
-		ret = pals_send(tx_port, rv, sizeof(rv));
+		ret = pals_send(tx_port, &rv, sizeof(rv));
 		if (ret < 0) {
 				perror("send");
 		} else {
@@ -242,9 +181,9 @@ int main(int argc, char *argv[])
 		pals_task_t *task = NULL;
 		char name[100] = {0};
 		pals_time_t time;
-		int i;
-		int id;
-
+		//int i;
+		int id = 4;
+/*
 		if (argc != 2) {
 				fprintf(stderr, "%s: need one argument\n", argv[0]);
 				fprintf(stderr, "Usage: %s {1..%d}\n", argv[0], NTASKS);
@@ -257,7 +196,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Usage: %s {1..%d}\n", argv[0], NTASKS);
 				return -1;
 		}
-		id--;
+*/		id--;
 
 		env = pals_initialize(&pals_conf, 0);
 

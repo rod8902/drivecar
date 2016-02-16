@@ -9,7 +9,7 @@ CFLAGS += -DPALS_DEBUG
 LDFLAGS += -L$(PALS_LIBDIR)
 LDLIBS += -lpals -lpthread -lrt
 
-TARGETS = simple comtest multitest
+TARGETS = simple comtest task_left task_right
 
 all: $(TARGETS)
 

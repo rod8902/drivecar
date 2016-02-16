@@ -73,7 +73,7 @@ int task_right(pals_task_t *task, int phase, void *arg){
 		}
 		wheel_velocity = cv * info.rot /90;
 
-		wheel_control = 1500 + wheel_velocity;	
+		wheel_control = 1500 - wheel_velocity;	
 		
 		printf("dv=%d, cv=%d, goal=%d, wheel_velocity=%d, wheel_control=%d, delta = %d\n", dv, cv, goal, wheel_velocity, wheel_control, delta);
 

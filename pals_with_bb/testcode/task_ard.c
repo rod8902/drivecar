@@ -18,11 +18,11 @@ int task_arduino(pals_task_t *task, int phase, void *arg)
 		int w_fd = -1;
 
 		// open file descriptor for xuart connection
-			w_fd = open(XUART1, O_RDWR | O_NOCTTY );
-				if( w_fd < 0 ){
-						perror(XUART1);
-								return -1;       
-									}
+		w_fd = open(XUART1, O_RDWR | O_NOCTTY );
+		if( w_fd < 0 ){
+				perror(XUART1);
+				return -1;       
+		}
 
 		round++;
 		base_time = pals_task_get_base_time(task);
@@ -34,12 +34,14 @@ int task_arduino(pals_task_t *task, int phase, void *arg)
 		ret = pals_recv(left_port, &lv, sizeof(lv));
 		if (ret < 0) {
 				printf("no left msg");
+				lv = 1500;
 		}else{
 				printf("lv:%d\n",lv);
 		}
 		ret = pals_recv(right_port, &rv, sizeof(rv));
 		if (ret < 0) {
 				printf("no right msg");
+				rv = 1500;
 		}else{
 				printf("rv:%d\n",rv);
 		}

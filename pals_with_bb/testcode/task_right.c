@@ -53,7 +53,7 @@ int task_right(pals_task_t *task, int phase, void *arg){
 	
 		// dv is from +5 to -5
 		dv = (info.acc - info.brk);
-		if( dv < 0 ){
+		if( dv <= 0 ){
 			goal = 0;
 		}else 
 			goal = RATE*dv;

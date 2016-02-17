@@ -76,7 +76,7 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		wheel_control = 1500 + wheel_velocity;	
 		
 		printf("dv=%d, cv=%d, goal=%d, wheel_velocity=%d, wheel_control=%d, delta = %d\n", dv, cv, goal, wheel_velocity, wheel_control, delta);
-
+/*
 		ret = pals_recv(right_rx_port, &right_wheel_control, sizeof(right_wheel_control));
 		if (ret < 0) {
 				perror("recv from right");
@@ -85,7 +85,7 @@ int task_left(pals_task_t *task, int phase, void *arg){
 		} else {
 				printf("task%d(%d): received(con%d) message = '%d %d %d'\n", id+1, round, i+1, info.acc, info.brk, info.rot );
 		}
-
+*/
 		ret = pals_send(tx_port, &wheel_control , sizeof(wheel_control));
 		if ( ret < 0) {
 				perror("send");

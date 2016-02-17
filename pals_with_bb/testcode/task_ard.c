@@ -3,6 +3,10 @@
 pals_rx_port_t *right_port;
 pals_rx_port_t *left_port;
 
+int prev_lv = 1500;
+int prev_rv = 1500;
+
+
 int task_arduino(pals_task_t *task, int phase, void *arg)
 {
 		static int round;
@@ -12,8 +16,8 @@ int task_arduino(pals_task_t *task, int phase, void *arg)
 		//char bufl[100];
 		//char bufr[100];
 
-		static int lv = 1500;
-		static int rv = 1500;
+		int lv = 1500;
+		int rv = 1500;
 
 		int w_fd = -1;
 
@@ -34,16 +38,21 @@ int task_arduino(pals_task_t *task, int phase, void *arg)
 		ret = pals_recv(left_port, &lv, sizeof(lv));
 		if (ret < 0) {
 				printf("no left msg");
+				lv = prev_lv;
 				//lv = 1500;
 		}else{
 				printf("lv:%d\n",lv);
+				prev_lv = lv;
+
 		}
 		ret = pals_recv(right_port, &rv, sizeof(rv));
 		if (ret < 0) {
 				printf("no right msg");
+				rv = prev_rv;
 				//rv = 1500;
 		}else{
 				printf("rv:%d\n",rv);
+				prev_rv = rv;
 		}
 
 		write(w_fd, &lv, sizeof(lv));

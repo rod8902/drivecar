@@ -53,7 +53,7 @@ int task_right(pals_task_t *task, int phase, void *arg){
 	
 		// dv is from +5 to -5
 		dv = (info.acc - info.brk);
-		if( dv <= 0 ){
+		if( dv < 0 ){
 			goal = 0;
 		}else 
 			goal = RATE*dv;
@@ -66,7 +66,7 @@ int task_right(pals_task_t *task, int phase, void *arg){
 				delta = 0;
 
 		
-		cv = cv + (goal - cv)/((dv >= 0) ? DIV :(DIV*4)) + ((dv <= 0) ? 2*dv : 0) + delta; //`* info.rot/180; 
+		cv = cv + (goal - cv)/((dv > 0) ? DIV :(DIV*4)) + ((dv < 0) ? 2*dv : 0) + delta; //`* info.rot/180; 
 		if( info.brk < -45){
 			cv = 0;
 		}

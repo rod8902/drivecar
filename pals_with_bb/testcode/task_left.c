@@ -63,7 +63,7 @@ int task_left(pals_task_t *task, int phase, void *arg){
 			delta = 0;
 
 		
-		cv = cv + (goal - cv)/((dv > 0) ? DIV :(DIV*4)) + ((dv <0) ? 2*dv : 0) + delta; //`* info.rot/180; 
+		cv = cv + (goal - cv)/((dv > 0) ? DIV :(DIV*4)) + ((dv <= 0) ? 2*dv : 0) + delta; //`* info.rot/180; 
 		if( cv < 0 ){
 			cv = 0;
 		}

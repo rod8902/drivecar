@@ -14,23 +14,26 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <active-standby.h>
+#include <netdb.h>
+#include <ifaddrs.h>
 
 //#define PERIOD 1000000000L   // 2.0 sec
-#define PERIOD 1000000000L
+#define PERIOD 100000000L
+
+//#define MY_IPADDR "10.0.1.65"
+
 #define TASK1	"task1"
 #define TASK2	"task2"
 #define TASK3	"task3"
 #define TASK4	"task4"
 #define TASK5	"task5"
-#define TASK6	"task6"
 
 #define CON1	"con1"
 #define CON2	"con2"
 #define CON3	"con3"
 #define CON4	"con4"
 #define CON5	"con5"
-#define CON6	"con6"
+
 
 #define XUART1 "/dev/ttyO1"
 #define DIV	10	// rod
@@ -38,11 +41,10 @@
 // tasks
 struct pals_conf_task tasks[] = {
 	{.name = TASK1, .prio = 4, .ip_addr = "127.0.0.1", .port = 4321, .rate = 1, .offset = 0},
-	{.name = TASK2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4322, .rate = 2, .offset = 0},
-	{.name = TASK3, .prio = 4, .ip_addr = "127.0.0.1", .port = 4323, .rate = 3, .offset = 0},
-	{.name = TASK4, .prio = 4, .ip_addr = "127.0.0.1", .port = 4324, .rate = 3, .offset = 0},
-	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 3, .offset = 0},	// arduino
-	{.name = TASK6, .prio = 4, .ip_addr = "127.0.0.1", .port = 4326, .rate = 3, .offset = 0}	// side
+	{.name = TASK2, .prio = 4, .ip_addr = "127.0.0.1", .port = 4322, .rate = 1, .offset = 0},
+	{.name = TASK3, .prio = 4, .ip_addr = "127.0.0.1", .port = 4323, .rate = 1, .offset = 0},
+	{.name = TASK4, .prio = 4, .ip_addr = "127.0.0.1", .port = 4324, .rate = 1, .offset = 0},
+	{.name = TASK5, .prio = 4, .ip_addr = "127.0.0.1", .port = 4325, .rate = 1, .offset = 0}	// new
 };
 
 #define NTASKS (sizeof(tasks)/sizeof(struct pals_conf_task))
@@ -53,100 +55,29 @@ struct pals_conf_con cons[] = {
 	{.name = CON2, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK2, .n_peers = 0},
 	{.name = CON3, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK3, .n_peers = 0},
 	{.name = CON4, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK4, .n_peers = 0},
-	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0}, //
-	{.name = CON6, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK6, .n_peers = 0}	// side
-
+	{.name = CON5, .len = 100, .mode = PALS_NEXT_ROUND, .sender = TASK5, .n_peers = 0}	// new
 };
 
 #define NCONS (sizeof(cons)/sizeof(struct pals_conf_con))
-
+//int NCONS;
 // master configuration
 struct pals_conf pals_conf = {
-	.name = "multirate-comtest",
+	.name = "multirate-comtest with active-standby",
 	.period = PERIOD,
 	.mcast_addr = "226.1.1.1",
 	.mcast_port = 4511,
-	.n_tasks = 5,//origin:4//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	.n_tasks = 5,	// origin: 4
 	.tasks = tasks,
-	.n_cons = 5,//origin:4//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	.n_cons = 5,	//origin:4	
 	.cons = cons
 };
-
-enum {
-    INACTIVE = 0,
-    ACTIVE = 1,
-    STANDBY = 2
-};
-
-int myside; // 1 or 2
-int mystate = INACTIVE;
-int other_state = INACTIVE;
-int cmd;
-pals_rx_port_t *cmd_port;
-pals_tx_port_t *state_tx_port;
-pals_rx_port_t *state_rx_port;
-
-// routine for each period
-int tasklet_side(pals_task_t *task, int phase, void *arg)
-{
-		static int round;
-		int ret;
-		const pals_time_t *base_time, *start_time;
-
-		round++;
-		base_time = pals_task_get_base_time(task);
-		start_time = pals_task_get_start_time(task);
-
-		printf("side%d(%d): (base_time={sec=%llu,nsec=%llu}, start_time={sec=%llu,nsec=%llu})\n",
-						myside, round, base_time->sec, base_time->nsec, start_time->sec, start_time->nsec);
-
-		ret = pals_recv(state_rx_port, &other_state, sizeof(other_state));
-		if (ret < 0) {
-				// no alive message
-				other_state = INACTIVE;
-				printf("  side%d: NO_MSG from %s\n", myside, (myside == 1) ? SIDE2 : SIDE1);
-		}
-
-		ret = pals_recv(cmd_port, &cmd, sizeof(cmd));
-		if (ret < 0) {
-				// no toggle message
-				cmd = NO_MSG;
-		}
-
-		// decide current state
-		if (mystate == other_state) {
-				mystate = (myside == 1)? ACTIVE : STANDBY;
-		} else if (mystate == INACTIVE) {
-				// the other side alive aleady before me
-				mystate = STANDBY;
-				assert(other_state == ACTIVE);
-		} else if (other_state == INACTIVE) {
-				mystate = ACTIVE;
-		} else if (cmd == TOGGLE) {
-				// flip the state
-				mystate = (mystate == ACTIVE)? STANDBY : ACTIVE;
-				printf("  side%d: toggle to %s state\n", myside, (mystate==ACTIVE)? "ACTIVE" : "STANDBY");
-		}
-		printf("  side%d: My State = %s\n", myside, (mystate==ACTIVE)? "ACTIVE" : "STANDBY");
-
-		// send my state to the other
-		ret = pals_send(state_tx_port, &mystate, sizeof(mystate));
-		if (ret < 0) {
-				perror("send");
-				return -1;
-		}
-
-		assert(ret == sizeof(mystate));
-
-		return 0;
-}
 
 pals_rx_port_t *rx_port[NCONS];
 pals_tx_port_t *tx_port;
 
 // routine for each period
 
-int scnt=0;
+int scnt=0;	// 1st time, To connect andriod client for tasklet_server
 int server_sockfd=-1, client_sockfd=-1, sockfd=-1;
 int state, client_len;
 int yes;
@@ -156,7 +87,6 @@ int acnt=0;
 
 int tasklet_server(pals_task_t *task, int phase, void *arg){
 
-
 	static int round[NTASKS];
 	char buf[100]={0};
 	int ret;
@@ -165,15 +95,20 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 	int id = (long)arg;
 	int i;
 
-
 	char sbuf[13]={0};
-
+	
+	struct ifaddrs *ifaddr, *ifa;
+	int s;
+	char host[NI_MAXHOST];
+	char my_ipaddr[NI_MAXHOST];
+	
 	round[id]++;
 	base_time = pals_task_get_base_time(task);
 	start_time = pals_task_get_start_time(task);
 	
 	if(scnt==0){
 
+		//// Task start 
 		printf("task%d(%d): (base_time={sec=%llu,nsec=%llu}, start_time={sec=%llu,nsec=%llu})\n",
 				id+1, round[id], base_time->sec, base_time->nsec, start_time->sec, start_time->nsec);
 
@@ -197,19 +132,49 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 				}
 			}
 		}
+		
+		//////////////////////////////
+		// Connect to Andriod client /
+		//////////////////////////////
+		
+		if( getifaddrs(&ifaddr) == -1){
+			perror("getifaddrs");
+			exit(0);
+		}
+		
+		for(ifa = ifaddr; ifa !=NULL; ifa = ifa->ifa_next){
+			if(ifa->ifa_addr == NULL)
+				continue;
+
+			s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+
+			if((strcmp(ifa->ifa_name, "wlan0")==0) && (ifa->ifa_addr->sa_family==AF_INET)){
+			//if((strcmp(ifa->ifa_name, "eth0")==0) && (ifa->ifa_addr->sa_family==AF_INET)){
+				if( s != 0){
+					printf("getnameinfo() failed\n");
+					exit(0);
+				}
+				strncpy(my_ipaddr, host, NI_MAXHOST);
+			}
+		}
+
+
 		if ((server_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 			perror("socket error : ");
 			exit(0);
 		}
 
+		printf("IPv4: %s\n", my_ipaddr);
+
 		memset(&serveraddr, 0x00, sizeof(serveraddr));
 		serveraddr.sin_family = AF_INET;
-		serveraddr.sin_addr.s_addr = inet_addr("10.0.1.65");
+		serveraddr.sin_addr.s_addr = inet_addr(my_ipaddr);	//
 		serveraddr.sin_port = htons(9000);
 
 		setsockopt(server_sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
-		state = bind(server_sockfd, (struct sockaddr *)&serveraddr,
-				sizeof(serveraddr));
+		state = bind(server_sockfd, (struct sockaddr *)&serveraddr,	sizeof(serveraddr));
+
+		printf("********TCP Server Waiting **********\n");
 
 		if (state == -1) {
 			perror("bind error : ");
@@ -228,11 +193,10 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 
 		client_len = sizeof(clientaddr);
 		client_sockfd = accept(server_sockfd, (struct sockaddr*) &clientaddr, &client_len);
+		scnt++;
 
 	}
-	scnt++;
-
-	if(scnt!=0){
+	else{	//  scnt is non-zero
 		if (read(client_sockfd, sbuf, sizeof(sbuf)) > 0) {
 			printf("read:%s\n",sbuf);
 			printf("task%d(%d): (base_time={sec=%llu,nsec=%llu}, start_time={sec=%llu,nsec=%llu})\n",
@@ -267,8 +231,6 @@ int tasklet_server(pals_task_t *task, int phase, void *arg){
 	return 0;
 
 }
-
-
 
 int tasklet_acc(pals_task_t *task, int phase, void *arg)
 {
@@ -307,9 +269,6 @@ int tasklet_acc(pals_task_t *task, int phase, void *arg)
 			ret = pals_recv(rx_port[i], buf, sizeof(buf));
 			if (ret < 0) {
 				perror("recv");
-				if(i==2){	// No received msg from brake_task
-					d_acc = 0;
-				}
 			} else {
 				printf("%s from %d \n", buf, i);
 				
@@ -330,7 +289,7 @@ int tasklet_acc(pals_task_t *task, int phase, void *arg)
 int tasklet_brk(pals_task_t *task, int phase, void *arg)
 {
 	static int round[NTASKS];
-	char buf[100];
+	char buf[100] = {0};
 	int ret;
 	int len;
 	const pals_time_t *base_time, *start_time;
@@ -383,7 +342,7 @@ int tasklet_brk(pals_task_t *task, int phase, void *arg)
 int tasklet_rot(pals_task_t *task, int phase, void *arg)
 {
 	static int round[NTASKS];
-	char buf[100];
+	char buf[100] = {0};
 	int ret;
 	int len;
 	const pals_time_t *base_time, *start_time;
@@ -442,7 +401,7 @@ int rv = 1500;	// 1400 ~ 1500
 int tasklet_ard(pals_task_t *task, int phase, void *arg){
 
 	static int round[NTASKS];
-	char buf[100];
+	char buf[100]={0};
 	int ret;
 	int len;
 	const pals_time_t *base_time, *start_time;
@@ -461,14 +420,11 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 	int speed = 0;
 	
 	// open file descriptor for xuart connection
-	if(acnt==0){
-		w_fd = open(XUART1, O_RDWR | O_NOCTTY );
-		if( w_fd < 0 ){
-			perror(XUART1);
-			return -1;       
-		}
+	w_fd = open(XUART1, O_RDWR | O_NOCTTY );
+	if( w_fd < 0 ){
+		perror(XUART1);
+		return -1;       
 	}
-	//acnt++;
 
 	round[id]++;
 	base_time = pals_task_get_base_time(task);
@@ -494,6 +450,22 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 			ret = pals_recv(rx_port[i], buf, sizeof(buf));
 			if (ret < 0) {
 				perror("recv");
+				switch(i){
+					case 1:	
+						r_acc = 0;	
+						break;
+					case 2: 
+						r_brk = 0;
+						speed = 0;
+						r_acc = 0;
+						break;
+					case 3: 
+						rot=90;
+						break;
+					default: 
+						printf("task%d(%d): received(con%d) message = '%s'\n", id+1, round[id], i+1, buf); 
+						break;
+				}
 			} else {
 				switch(i){
 					case 1:	
@@ -562,12 +534,6 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 				rv = rv + (dmin_rv/( 6 + speed));
 			}						
 		}
-/*
-		// reset
-		if(speed < 0 && (lv ==1500 %% rv==1500)){
-			speed = 0;
-		}
-*/			
 	}else{		// speed is zero
 		lv= lv-1;
 		rv= rv+1;
@@ -590,6 +556,7 @@ int tasklet_ard(pals_task_t *task, int phase, void *arg){
 	ret = write(w_fd, &lv, sizeof(lv));
 	ret = write(w_fd, &rv, sizeof(rv));
 
+	close(w_fd);
 	return 0;
 
 }
@@ -598,7 +565,7 @@ int main(int argc, char *argv[])
 {
 	pals_env_t *env;
 	pals_task_t *task = NULL;
-	char name[100];
+	char name[100] = {0};
 	pals_time_t time;
 	int i;
 	int id;
@@ -628,35 +595,27 @@ int main(int argc, char *argv[])
 	printf("%s start at {sec=%lld, nsec=%lld}\n", pals_env_get_name(env), time.sec, time.nsec);
 
 	sprintf(name, "task%d", id+1);
-	/*
-	   if(id+1==1){
-	//task = pals_task_open(env, name, tasklet1, (void*)(long)id);
-	task = pals_task_open(env, name, tasklet_server, (void*)(long)id);
-	}
-	else if(id+1==2){
-	task = pals_task_open(env, name, tasklet_b, (void*)(long)id);
-	}
-	 */
+	
 	switch (id+1) {
 		case 1 : task = pals_task_open(env, name, tasklet_server, (void*)(long)id); break;
 		case 2 : task = pals_task_open(env, name, tasklet_acc, (void*)(long)id); break;
 		case 3 : task = pals_task_open(env, name, tasklet_brk, (void*)(long)id);; break;
 		case 4 : task = pals_task_open(env, name, tasklet_rot, (void*)(long)id);; break;
 		case 5 : task = pals_task_open(env, name, tasklet_ard, (void*)(long)id); break;
-		case 6 : myside=1; task = pals_task_open(env, name, tasklet_side, (void*)(long)id); break; 
-		case 7 : myside=2; task = pals_task_open(env, name, tasklet_side, (void*)(long)id); break;
-		default : ; break;
+		default : break;
+	
+	sprintf(name, "task%d", id+1);
+	
 	}
-
 	if (task == NULL) {
 		perror("task open\n");
 		return -1;
 	}
 
-	cmd_port = pals_rx_port_open(task, CON_CMD);
 
 	for (i=0; i<NCONS; i++) {
 		sprintf(name, "con%d", i+1);
+	
 		if (i == id) {
 			tx_port = pals_tx_port_open(task, name);
 			if (tx_port == NULL) {
